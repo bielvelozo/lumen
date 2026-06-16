@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lumen — preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#e9f0f9; --bg-2:#dfe9f6;
+  --surface:#ffffff; --surface-2:#f4f8fc;
+  --text:#0e1b2a; --text-2:#566b7d; --text-3:#8497a8;
+  --accent:#185fa5; --accent-2:#378add; --accent-soft:#e6f1fb;
+  --pos:#1d9e75; --neg:#d85a30;
+  --border:rgba(14,27,42,.08); --border-2:rgba(14,27,42,.14);
+  --glass-bg:rgba(255,255,255,.55); --glass-border:rgba(255,255,255,.75); --glass-hi:rgba(255,255,255,.9);
+  --shadow:0 10px 34px rgba(14,40,80,.10);
+  --blob-1:rgba(55,138,221,.55); --blob-2:rgba(40,200,170,.42);
+}
+[data-theme="dark"]{
+  --bg:#0a1422; --bg-2:#0b1828;
+  --surface:#14202f; --surface-2:#1a283a;
+  --text:#eaf1f8; --text-2:#94a5b6; --text-3:#6b7d8f;
+  --accent:#4d9be8; --accent-2:#378add; --accent-soft:#15314c;
+  --pos:#43c79b; --neg:#f0997b;
+  --border:rgba(255,255,255,.10); --border-2:rgba(255,255,255,.16);
+  --glass-bg:rgba(20,33,49,.45); --glass-border:rgba(255,255,255,.14); --glass-hi:rgba(255,255,255,.16);
+  --shadow:0 10px 34px rgba(0,0,0,.38);
+  --blob-1:rgba(40,110,200,.40); --blob-2:rgba(20,150,140,.30);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:Inter,system-ui,sans-serif;color:var(--text);background:var(--bg);
+  -webkit-font-smoothing:antialiased;overflow:hidden}
+.bg{position:fixed;inset:0;z-index:-1;overflow:hidden;background:
+  radial-gradient(120% 120% at 50% 0%, var(--bg-2), var(--bg))}
+.blob{position:absolute;border-radius:50%;filter:blur(90px)}
+.blob.a{width:560px;height:560px;background:var(--blob-1);top:-160px;left:-90px}
+.blob.b{width:520px;height:520px;background:var(--blob-2);bottom:-180px;right:-70px}
+.glass{background:var(--glass-bg);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);
+  border:1px solid var(--glass-border);box-shadow:var(--shadow),inset 0 1px 0 var(--glass-hi)}
+.app{display:grid;grid-template-columns:244px 1fr;grid-template-rows:64px 1fr;
+  gap:14px;padding:14px;height:100vh}
+.sidebar{grid-column:1;grid-row:1 / 3;border-radius:20px;padding:18px 16px;display:flex;flex-direction:column}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 6px 18px}
+.brand b{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:18px;letter-spacing:-.01em}
+.nav{display:flex;flex-direction:column;gap:3px;margin-top:6px}
+.nav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:12px;
+  color:var(--text-2);text-decoration:none;font-size:14px;transition:background .15s,color .15s}
+.nav a svg{width:20px;height:20px;flex:none}
+.nav a:hover{background:var(--accent-soft);color:var(--text)}
+.nav a.on{background:var(--accent);color:#fff}
+.side-foot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px 8px 2px;border-top:1px solid var(--border);}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;display:flex;
+  align-items:center;justify-content:center;font-weight:600;font-size:13px;flex:none}
+.side-foot small{display:block;color:var(--text-3);font-size:12px}
+.side-foot .nm{font-size:13px;font-weight:500}
+.topbar{grid-column:2;grid-row:1;border-radius:16px;display:flex;align-items:center;gap:14px;padding:0 16px}
+.search{display:flex;align-items:center;gap:9px;flex:1;max-width:420px;color:var(--text-3)}
+.search input{border:0;background:transparent;outline:none;color:var(--text);font:inherit;font-size:14px;width:100%}
+.search svg{width:18px;height:18px;flex:none}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.icon-btn{width:38px;height:38px;border-radius:11px;border:1px solid var(--border-2);background:transparent;
+  color:var(--text-2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,color .15s}
+.icon-btn:hover{background:var(--accent-soft);color:var(--text)}
+.icon-btn svg{width:19px;height:19px}
+.main{grid-column:2;grid-row:2;min-height:0;display:flex;flex-direction:column;gap:14px;overflow:hidden}
+.greeting h1{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:23px;margin:2px 0 4px;letter-spacing:-.01em}
+.greeting p{margin:0;color:var(--text-2);font-size:14px}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px 18px}
+.card .lab{color:var(--text-2);font-size:13px;margin:0 0 8px}
+.card .val{font-size:26px;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.card .delta{font-size:12.5px;margin-top:6px;font-variant-numeric:tabular-nums}
+.up{color:var(--pos)} .down{color:var(--neg)}
+.chat{position:relative;flex:1;min-height:0;border-radius:18px;background:var(--surface);border:1px solid var(--border);overflow:hidden}
+.messages{position:absolute;inset:0;overflow:auto;padding:22px 22px 96px;display:flex;flex-direction:column;gap:16px}
+.row{display:flex;gap:10px;max-width:78%}
+.row.me{align-self:flex-end;flex-direction:row-reverse}
+.bub{padding:11px 15px;border-radius:16px;font-size:14.5px;line-height:1.55}
+.row.them .bub{background:var(--surface-2);border:1px solid var(--border);border-top-left-radius:5px;color:var(--text)}
+.row.me .bub{background:var(--accent);color:#fff;border-top-right-radius:5px}
+.mini{display:flex;gap:18px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.mini div span{display:block;font-size:11.5px;color:var(--text-2)}
+.mini div b{font-size:15px;font-variant-numeric:tabular-nums}
+.composer{position:absolute;left:16px;right:16px;bottom:16px;border-radius:16px;padding:9px 9px 9px 12px;
+  display:flex;align-items:center;gap:10px}
+.model-wrap{position:relative;flex:none}
+.model{display:flex;align-items:center;gap:7px;border:1px solid var(--border-2);background:var(--surface);
+  border-radius:11px;padding:7px 10px;cursor:pointer;font:inherit;font-size:13px;color:var(--text);white-space:nowrap}
+.model .dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.model svg{width:15px;height:15px;color:var(--text-3)}
+.model-menu{position:absolute;left:0;bottom:46px;min-width:170px;border-radius:13px;padding:6px;display:none}
+.model-menu.open{display:block}
+.model-menu button{display:flex;width:100%;align-items:center;gap:8px;border:0;background:transparent;
+  color:var(--text);font:inherit;font-size:13.5px;padding:9px 10px;border-radius:9px;cursor:pointer;text-align:left}
+.model-menu button:hover{background:var(--accent-soft)}
+.composer input{flex:1;border:0;background:transparent;outline:none;color:var(--text);font:inherit;font-size:14.5px}
+.send{width:38px;height:38px;border-radius:11px;border:0;background:var(--accent);color:#fff;flex:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:transform .12s}
+.send:hover{transform:translateY(-1px)} .send:active{transform:scale(.95)}
+.send svg{width:19px;height:19px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:840px){
+  body{overflow:auto}
+  .app{grid-template-columns:1fr;grid-template-rows:64px auto;height:auto;min-height:100vh}
+  .sidebar{display:none}
+  .metrics{grid-template-columns:1fr}
+  .chat{min-height:62vh}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="bg"><span class="blob a"></span><span class="blob b"></span></div>
+
+<div class="app">
+  <aside class="sidebar glass">
+    <div class="brand">
+      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect x="2" y="2" width="24" height="24" rx="8" fill="var(--accent)"/><path d="M14 7.5l1.7 4.8 4.8 1.7-4.8 1.7L14 20.5l-1.7-4.8L7.5 14l4.8-1.7z" fill="#fff"/></svg>
+      <b>Lumen</b>
+    </div>
+    <nav class="nav">
+      <a class="on" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H9l-4 3.5V6a1 1 0 0 1 1-1z"/></svg>Chat</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></svg>Conexões</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>Conversas</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V5M5 19h14"/><rect x="8" y="11" width="3" height="5"/><rect x="13" y="7" width="3" height="9"/></svg>Relatórios</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M17 7h3"/><circle cx="15" cy="7" r="2"/><path d="M4 17h5M13 17h7"/><circle cx="11" cy="17" r="2"/></svg>Configurações</a>
+    </nav>
+    <div class="side-foot">
+      <div class="avatar">GV</div>
+      <div><span class="nm">Gabriel Velozo</span><small>Loja do Gabriel</small></div>
+    </div>
+  </aside>
+
+  <header class="topbar glass">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg>
+      <input placeholder="Buscar conversas e relatórios">
+    </div>
+    <div class="tb-right">
+      <button class="icon-btn" id="themeBtn" aria-label="Alternar tema claro e escuro">
+        <svg id="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14a8 8 0 1 1-10-10 6 6 0 0 0 10 10z"/></svg>
+      </button>
+      <div class="avatar">GV</div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="greeting">
+      <h1>Bom dia, Gabriel</h1>
+      <p>Pergunte qualquer coisa sobre os dados do seu negócio.</p>
+    </div>
+
+    <section class="metrics">
+      <div class="card"><p class="lab">Vendas em maio</p><div class="val">R$ 128.000</div><div class="delta up">+12% vs abril</div></div>
+      <div class="card"><p class="lab">Pedidos</p><div class="val">342</div><div class="delta up">+8% vs abril</div></div>
+      <div class="card"><p class="lab">Ticket médio</p><div class="val">R$ 374</div><div class="delta down">-3% vs abril</div></div>
+    </section>
+
+    <section class="chat">
+      <div class="messages" id="messages">
+        <div class="row me"><div class="bub">Quanto vendi em maio?</div></div>
+        <div class="row them"><div class="bub">Em maio você vendeu <b>R$ 128.000</b>, 12% a mais que em abril. Foram 342 pedidos, com ticket médio de R$ 374.
+          <div class="mini">
+            <div><span>Maior dia</span><b>14/05</b></div>
+            <div><span>Top produto</span><b>Kit Verão</b></div>
+            <div><span>Devoluções</span><b>1,2%</b></div>
+          </div>
+        </div></div>
+        <div class="row me"><div class="bub">E quais clientes não compram há 90 dias?</div></div>
+        <div class="row them"><div class="bub">Encontrei 27 clientes sem compra há mais de 90 dias. Os 5 de maior valor somam R$ 9.430 em compras anteriores. Quer a lista completa ou só esses 5?</div></div>
+      </div>
+
+      <div class="composer glass">
+        <div class="model-wrap">
+          <button class="model" id="modelBtn" aria-haspopup="true">
+            <span class="dot"></span>Claude
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="model-menu glass" id="modelMenu">
+            <button data-m="Claude"><span class="dot" style="background:var(--accent)"></span>Claude</button>
+            <button data-m="GPT-4o"><span class="dot" style="background:var(--accent)"></span>GPT-4o</button>
+            <button data-m="Gemini"><span class="dot" style="background:var(--accent)"></span>Gemini</button>
+          </div>
+        </div>
+        <input id="msgInput" placeholder="Pergunte sobre seus dados…">
+        <button class="send" id="sendBtn" aria-label="Enviar pergunta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6M6 12l6-6 6 6"/></svg>
+        </button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  var root=document.documentElement, tb=document.getElementById('themeBtn');
+  var sun='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.4 1.4M17.6 17.6L19 19M19 5l-1.4 1.4M6.4 17.6L5 19"/></svg>';
+  var moon=document.getElementById('ic-moon').outerHTML;
+  tb.addEventListener('click',function(){
+    var dark=root.getAttribute('data-theme')==='dark';
+    if(dark){root.removeAttribute('data-theme');tb.innerHTML=moon;}
+    else{root.setAttribute('data-theme','dark');tb.innerHTML=sun;}
+  });
+
+  var mb=document.getElementById('modelBtn'), mm=document.getElementById('modelMenu');
+  mb.addEventListener('click',function(e){e.stopPropagation();mm.classList.toggle('open');});
+  document.addEventListener('click',function(){mm.classList.remove('open');});
+  mm.querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click',function(){mb.childNodes[2].textContent=' '+b.dataset.m;mm.classList.remove('open');});
+  });
+
+  var input=document.getElementById('msgInput'), msgs=document.getElementById('messages');
+  function send(){
+    var t=input.value.trim(); if(!t) return;
+    var me=document.createElement('div'); me.className='row me'; me.innerHTML='<div class="bub"></div>';
+    me.querySelector('.bub').textContent=t; msgs.appendChild(me); input.value='';
+    msgs.scrollTop=msgs.scrollHeight;
+    setTimeout(function(){
+      var th=document.createElement('div'); th.className='row them';
+      th.innerHTML='<div class="bub">Consultei seus dados ao vivo. Esta é uma prévia de layout, então a resposta real viria do seu banco aqui.</div>';
+      msgs.appendChild(th); msgs.scrollTop=msgs.scrollHeight;
+    },500);
+  }
+  document.getElementById('sendBtn').addEventListener('click',send);
+  input.addEventListener('keydown',function(e){if(e.key==='Enter')send();});
+  msgs.scrollTop=msgs.scrollHeight;
+</script>
+</body>
+</html>
