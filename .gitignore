@@ -1,0 +1,16 @@
+# Obsidian workspace (machine-local)
+context/.obsidian/workspace.json
+context/.obsidian/workspace-mobile.json
+context/.obsidian/cache
+context/.obsidian/plugins/*/data.json
+
+# Node / build output
+node_modules/
+dist/
+build/
+.cache/
+
+# Secrets & local env (never commit — see constitution: secrets stay out of the repo)
+.env
+.env.*
+!.env.example
