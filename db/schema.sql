@@ -143,6 +143,32 @@ CREATE INDEX idx_exposed_org ON exposed_tables(org_id);
 
 
 -- ----------------------------------------------------------------------------
+-- exposed_relationships  (quais relacionamentos/FKs o dono liberou, fluxo 2)
+-- ----------------------------------------------------------------------------
+-- Mesma ideia de menor privilegio da exposed_tables, agora para JOINs. Cada
+-- linha e uma foreign key descoberta na introspeccao e APROVADA pelo dono. O
+-- assistente so pode juntar tabelas por um relacionamento que esteja aqui,
+-- nunca um JOIN arbitrario (e o que mantem o join dentro da allow-list).
+-- 'relationship_name' e o identificador que o modelo referencia no cardapio.
+-- Invariante (validada na aplicacao): from_table e to_table precisam estar
+-- ambas em exposed_tables da MESMA conexao antes de ativar o relacionamento.
+CREATE TABLE exposed_relationships (
+    id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    db_connection_id   uuid NOT NULL REFERENCES db_connections(id) ON DELETE CASCADE,
+    org_id             uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,  -- desnormalizado p/ isolamento
+    relationship_name  text NOT NULL,        -- nome que o modelo usa, ex: 'orders_products'
+    from_table         text NOT NULL,        -- lado que segura a FK (filho)
+    from_column        text NOT NULL,
+    to_table           text NOT NULL,        -- lado referenciado (pai)
+    to_column          text NOT NULL,
+    created_at         timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (db_connection_id, relationship_name)
+);
+CREATE INDEX idx_exposed_rel_org  ON exposed_relationships(org_id);
+CREATE INDEX idx_exposed_rel_conn ON exposed_relationships(db_connection_id);
+
+
+-- ----------------------------------------------------------------------------
 -- ai_connections  (conexao com a IA, fluxo 3; Claude na v1)
 -- ----------------------------------------------------------------------------
 CREATE TABLE ai_connections (

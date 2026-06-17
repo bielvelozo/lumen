@@ -16,6 +16,7 @@ Business Assistant-specific safety and workflow rules.
 
 - [[../rules/use-best-practices-skills|Always develop with the best-practices skill packs]] — apply `react-best-practices` + `vercel-react-best-practices` for React/frontend, and `security-best-practices` for security-sensitive code.
 - [[../rules/security-review-before-merge|Run a security review before merging auth or secret changes]] — `security-review` must pass on any diff touching auth, secrets, or the connection flows.
+- [[../rules/no-coauthor-in-commits|Never add an AI as commit co-author]] — no `Co-Authored-By` trailer for Claude/AI on any commit; the human is the sole author.
 
 ## `severity: advisory`
 

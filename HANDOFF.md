@@ -5,11 +5,13 @@ foram tomadas no planejamento. A fonte da verdade do COMPORTAMENTO sao os
 diagramas no Lucid (links no fim). Aqui esta o "porque" condensado.
 
 ## O que e o produto
+
 Um dashboard onde o dono de um negocio conecta o banco de dados dele e uma IA,
 e faz perguntas em linguagem natural que sao respondidas sobre os dados reais
 do negocio dele. O diferencial e a camada de IA sobre dado estruturado.
 
 ## Stack travada (v1)
+
 - Front: React SPA com Vite. React Router + TanStack Query. Design system
   proprio (ver pasta design-system). Sem Next (app atras de login, SSR nao
   aproveitado). Hospedagem: Cloudflare Pages.
@@ -26,6 +28,7 @@ do negocio dele. O diferencial e a camada de IA sobre dado estruturado.
 - Observabilidade: Sentry pra erros + log de function calls (sanitizado).
 
 ## Invariantes (NAO violar)
+
 1. Isolamento multi-tenant: toda query e escopada por org_id. O org_id vem do
    JWT, nunca de um id mandado pelo cliente (anti-IDOR). O schema carrega org_id
    ate em messages e logs de proposito, pra facilitar esse escopo.
@@ -43,6 +46,7 @@ do negocio dele. O diferencial e a camada de IA sobre dado estruturado.
    de alto contraste.
 
 ## Ordem de build sugerida (fases ponta a ponta)
+
 1. Base e auth: Postgres + Drizzle + migrate do schema. Cadastro, login,
    verificacao de e-mail (Resend), JWT em cookie. Shell do front com o design
    system e o toggle de tema.
@@ -56,14 +60,18 @@ do negocio dele. O diferencial e a camada de IA sobre dado estruturado.
    os caminhos infelizes (fora de escopo, query vazia, banco caiu, chave falhou).
 5. Observabilidade (Sentry), polimento e deploy (Pages + container/VPS +
    Neon/Supabase).
-Cada fase entrega algo que funciona de ponta a ponta, nao um pedaco solto.
+   Cada fase entrega algo que funciona de ponta a ponta, nao um pedaco solto.
 
 ## Onde esta cada coisa
+
 - schema.sql ............... schema do banco da aplicacao (PostgreSQL), comentado.
 - design-system/ .......... tokens (design-system.css), componentes React (ui.jsx),
-                            guia (README.md) e um preview (preview-assistente-vidro.html).
+  guia (README.md) e um preview (preview-assistente-vidro.html).
 
 ## Lucid (comportamento, decisoes e fluxos)
+
+- Business Assistant - Documento mestre:
+  https://lucid.app/lucidchart/2e24d5d9-a10e-49a9-a7eb-a975a00e8eca/edit
 - Arquitetura + Centro de Decisoes (10 decisoes + ajustes):
   https://lucid.app/lucidchart/8e5986dc-834d-4532-b73a-ad35fc210191/edit
 - Fluxo 1 - Cadastro e login:
