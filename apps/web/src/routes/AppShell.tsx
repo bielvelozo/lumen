@@ -60,9 +60,8 @@ export function AppShell(): JSX.Element {
           Lumen
         </strong>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <NavItem href="/" active>
-            Início
-          </NavItem>
+          <NavItem href="/">Início</NavItem>
+          <NavItem href="/connect/database">Banco de dados</NavItem>
         </nav>
       </GlassPanel>
 
