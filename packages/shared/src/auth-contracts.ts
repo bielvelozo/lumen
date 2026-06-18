@@ -77,6 +77,46 @@ export const signupResponseSchema = z.object({
 export type SignupResponse = z.infer<typeof signupResponseSchema>;
 
 // ---------------------------------------------------------------------------
+// Login & sessions (spec 05)
+// ---------------------------------------------------------------------------
+
+/**
+ * `POST /auth/login` request. Email is normalized like signup; the password is only
+ * checked for presence here (strength is a signup-time concern). `.strict()` rejects
+ * unknown fields — the endpoint never accepts an `org_id` (anti-IDOR).
+ */
+export const loginRequestSchema = z
+  .object({
+    email: z.string().trim().toLowerCase().email('A valid email is required'),
+    password: z.string().min(1, 'Password is required'),
+  })
+  .strict();
+
+export type LoginRequest = z.infer<typeof loginRequestSchema>;
+
+/**
+ * The minimal session payload returned by `POST /auth/login` and `GET /auth/me`. Carries
+ * NO token material (the access/refresh tokens live only in httpOnly cookies).
+ */
+export const sessionResponseSchema = z.object({
+  userId: z.string().uuid(),
+  orgId: z.string().uuid(),
+  email: z.string().email(),
+});
+
+export type SessionResponse = z.infer<typeof sessionResponseSchema>;
+
+/**
+ * The verified-caller identity extracted from the access JWT by the `requireAuth`
+ * decorator and attached to the request. `orgId` here is the ONLY sanctioned source of
+ * the tenant id for downstream handlers (constitution invariant 1, anti-IDOR).
+ */
+export interface AuthenticatedUser {
+  userId: string;
+  orgId: string;
+}
+
+// ---------------------------------------------------------------------------
 // Email verification (spec 04)
 // ---------------------------------------------------------------------------
 

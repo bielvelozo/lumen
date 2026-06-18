@@ -4,6 +4,7 @@ import {
   PASSWORD_MIN_LENGTH,
   verifyEmailRequestSchema,
   resendVerificationRequestSchema,
+  loginRequestSchema,
 } from './auth-contracts';
 
 const valid = {
@@ -65,6 +66,23 @@ describe('verifyEmailRequestSchema', () => {
   });
   it('rejects unknown fields (.strict) — e.g. a client-supplied user_id', () => {
     expect(verifyEmailRequestSchema.safeParse({ token: 'x', user_id: 'u' }).success).toBe(false);
+  });
+});
+
+describe('loginRequestSchema', () => {
+  it('normalizes email and accepts any non-empty password', () => {
+    const r = loginRequestSchema.parse({ email: '  Owner@Example.com ', password: 'x' });
+    expect(r.email).toBe('owner@example.com');
+    expect(r.password).toBe('x');
+  });
+  it('rejects an empty password and an invalid email', () => {
+    expect(loginRequestSchema.safeParse({ email: 'a@b.com', password: '' }).success).toBe(false);
+    expect(loginRequestSchema.safeParse({ email: 'nope', password: 'x' }).success).toBe(false);
+  });
+  it('rejects unknown fields (.strict) — e.g. a client-supplied org_id', () => {
+    expect(
+      loginRequestSchema.safeParse({ email: 'a@b.com', password: 'x', org_id: 'o' }).success,
+    ).toBe(false);
   });
 });
 
