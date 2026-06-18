@@ -8,3 +8,4 @@ export * from './connection-contracts';
 export * from './introspection-contracts';
 export * from './ai-contracts';
 export * from './query-registry-contracts';
+export * from './chat-contracts';
