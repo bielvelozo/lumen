@@ -19,4 +19,6 @@ Learnings here are specific to Business Assistant. Code style conventions live i
 ## `#gotcha` — Things that tripped us up
 
 - [[../learnings/pnpm-blocks-dependency-build-scripts|pnpm 10 blocks dependency build scripts]] — `Ignored build scripts: esbuild` warning is actionable; allow-list via `pnpm.onlyBuiltDependencies` or Vite/Vitest/tsx break at runtime (spec 00).
+- [[../learnings/drizzle-desc-index-nulls-ordering|Drizzle `.desc()` emits `DESC NULLS LAST`]] — but Postgres bare `DESC` is `NULLS FIRST`; use `.desc().nullsFirst()` for a faithful DDL port; always diff generated SQL vs the DDL oracle (spec 01).
+- [[../learnings/drizzle-config-cjs-no-import-meta|`drizzle.config.ts` runs as CJS]] — `import.meta` is empty there (drizzle-kit bundles it to CJS); use `process.cwd()` for paths, not `import.meta.dirname` (spec 01).
 - [[../learnings/db-connection-consent-before-credential-tension|`db_connections` can't hold consent before a credential exists]] — consent and `encrypted_password NOT NULL` share one row, so "save consent first" needs a modeling decision (affects specs 07/08/10).

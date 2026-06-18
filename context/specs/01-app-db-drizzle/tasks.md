@@ -61,4 +61,4 @@ A box is checked ONLY after its slice is implemented AND committed.
 
 - [x] `pnpm build` / `pnpm lint` / `pnpm type-check` / `pnpm test` all green
 - [x] Record `db:generate` / `db:migrate` / `db:seed` in `context/learnings/commands-catalog.md`
-- [ ] Mark spec 01 Shipped (MOC token + frontmatter) — atomic final commit + learnings
+- [x] Mark spec 01 Shipped (MOC token + frontmatter) — atomic final commit + learnings

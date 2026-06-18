@@ -22,7 +22,7 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
 
 ### Phase 0 — Foundation
 - **Shipped** — [[../specs/00-monorepo-scaffold/spec|00 · Monorepo scaffold]] — pnpm + Turborepo workspace (`apps/web`, `apps/api`, `packages/shared`), TS/ESLint/Prettier/Vitest, env validation, local Docker (Postgres + MySQL). _Deps: none._
-- **In progress** — [[../specs/01-app-db-drizzle/spec|01 · App DB + Drizzle]] — Drizzle against Postgres; port `db/schema.sql` to a Drizzle schema; migrations, seed, `updated_at` handling. _Deps: 00._
+- **Shipped** — [[../specs/01-app-db-drizzle/spec|01 · App DB + Drizzle]] — Drizzle against Postgres; port `db/schema.sql` to a Drizzle schema; migrations, seed, `updated_at` handling. _Deps: 00._
 - **Planned** — [[../specs/02-secrets-and-tokens/spec|02 · Secrets & tokens]] — encryption-at-rest module (key outside the DB) for `bytea` secrets; token hashing for verification/refresh; password hashing helper. _Deps: 00, 01._
 
 ### Phase 1 — Base & Auth
@@ -56,3 +56,7 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
   Vitest, Zod env validation, local Docker (Postgres + MySQL). All gates green;
   both DB containers healthy. (Status token stays on its line in **Active** above —
   the MOC token is authoritative.)
+- **01 · App DB + Drizzle** — shipped 2026-06-18. Drizzle schema 1:1 port of
+  `db/schema.sql` (4 enums, 11 tables, all FK delete actions, uniques, indexes),
+  programmatic migrator (+pgcrypto), idempotent seed, structural test + live migrate
+  smoke (ran green vs local Docker Postgres). All gates green.

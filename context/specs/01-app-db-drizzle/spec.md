@@ -1,8 +1,8 @@
 ---
-status: draft
+status: shipped
 feature: app-db-drizzle
 created: 2026-06-17
-shipped: null
+shipped: 2026-06-18
 ---
 # App DB & Drizzle Schema — Spec
 
