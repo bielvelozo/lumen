@@ -91,6 +91,31 @@ describe('filtered_aggregate build', () => {
     expect(params).toEqual(['100']); // only the filter value is bound; nothing inlined
   });
 
+  it('build picks the relationship row matching the requested table PAIR, not just the name (F2/F3)', () => {
+    // Two same-named relationships connecting different pairs — build must use the one whose
+    // pair matches {table, joinTable}, identical to the guard's predicate.
+    const twoRels: ExposedAllowList = {
+      tables: new Map([
+        ['order_items', new Map([['order_id', 'int'], ['line_total', 'decimal(10,2)']])],
+        ['orders', new Map([['id', 'int'], ['status', 'varchar(20)']])],
+        ['decoys', new Map([['oi_id', 'int']])],
+      ]),
+      relationships: [
+        { name: 'dup', fromTable: 'order_items', fromColumn: 'id', toTable: 'decoys', toColumn: 'oi_id' },
+        { name: 'dup', fromTable: 'order_items', fromColumn: 'order_id', toTable: 'orders', toColumn: 'id' },
+      ],
+    };
+    const prepared = prepareOk('filtered_aggregate', {
+      table: 'order_items',
+      metric: { agg: 'sum', column: 'line_total' },
+      relationship: 'dup',
+      joinTable: 'orders',
+    });
+    const { sql } = prepared.build(twoRels);
+    expect(sql).toContain('JOIN `orders` ON `order_items`.`order_id` = `orders`.`id`');
+    expect(sql).not.toContain('decoys');
+  });
+
   it('omits the JOIN entirely when no relationship is requested', () => {
     const prepared = prepareOk('filtered_aggregate', {
       table: 'orders',

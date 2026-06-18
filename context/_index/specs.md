@@ -41,7 +41,7 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
 - **Shipped** — [[../specs/11-ai-connection-claude/spec|11 · Connect Claude]] — paste API key; validate with a test call (Vercel AI SDK); encrypt; set `default_model`; status + `last_error`; frontend. _Deps: 02, 05, 06._
 
 ### Phase 4 — Chat (the core)
-- **In progress** — [[../specs/12-query-function-registry/spec|12 · Query-function registry]] — the predefined, parameterized, read-only query functions over exposed tables/relationships; allow-list enforcement; backend builds the SQL, never the model. _The constitutional heart. Deps: 09._
+- **Shipped** — [[../specs/12-query-function-registry/spec|12 · Query-function registry]] — the predefined, parameterized, read-only query functions over exposed tables/relationships; allow-list enforcement; backend builds the SQL, never the model. _The constitutional heart. Deps: 09._
 - **Planned** — [[../specs/13-chat-orchestrator/spec|13 · Chat orchestrator]] — Fastify route + AI SDK tool-calling mapping model tool calls → query functions; streaming; persist `messages` (org-scoped); `function_call_logs` (sanitized); unhappy paths. _Deps: 11, 12._
 - **Planned** — [[../specs/14-chat-ui/spec|14 · Chat UI]] — sessions list, streaming message render on solid surfaces (glass only on chrome/input), model switch. _Deps: 06, 13._
 
@@ -77,6 +77,20 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
   best-effort post-commit via a `VerificationTrigger` seam (spec 04 fills it). Service
   + route unit tests; live store integration (atomic tx + UNIQUE rollback) ran green vs
   Docker Postgres. All gates green.
+- **12 · Query-function registry** — shipped 2026-06-18. **The constitutional heart**
+  (invariant 3) and a **Gate-2 CRITICAL** spec (all four checks UPHELD; F2/F3 resolved, F1
+  documented). A PURE backend module (no AI, no HTTP): `(functionName, rawParams, orgId)` +
+  injected `AllowListAccessor` + `QueryRunner` → rows or a sanitized typed refusal. Closed
+  enums (aggregate/grain/filter-op) + Zod shape validation in `packages/shared`; the **guard**
+  resolves table/column/relationship names by **allow-list MEMBERSHIP** (exposed_tables/
+  exposed_relationships for the org's ACTIVE `db_connections`, by JWT `org_id`) BEFORE any SQL
+  is built — so injection is impossible by construction (`total; DROP TABLE orders` isn't a
+  member → refused). The **builder** emits a single read-only `SELECT` with bound `?` for every
+  value and identifiers only from the validated set (charset-asserted + backtick-escaped); JOIN
+  columns come solely from the matched relationship row; `RESULT_ROW_LIMIT`+statement-timeout.
+  Two starter functions (`aggregate_over_time`, `filtered_aggregate`) verified end-to-end vs
+  seeded Docker MySQL (exact numbers; injection refused, table intact). 226 api (+34 skips) +
+  53 shared tests green. Module index exported for spec 13.
 - **11 · Connect Claude** — shipped 2026-06-18. Flow 3 (Gate-1, clean; LOW doc finding
   resolved). Backend + small frontend: paste a BYO Claude key, validate it with a **real
   minimal completion** via the **Vercel AI SDK** (`ai` + `@ai-sdk/anthropic`, `maxOutputTokens`

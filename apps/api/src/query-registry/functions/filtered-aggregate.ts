@@ -44,8 +44,13 @@ function build(p: FilteredAggregateParams, allowList: ExposedAllowList): BuiltQu
 
   if (joinRequested(p)) {
     // The JOIN columns come ONLY from the matched exposed relationship row — never model text.
-    // The guard guarantees a row with this name connecting the table pair exists.
-    const rel = allowList.relationships.find((r) => r.name === p.relationship);
+    // Re-fetch with the IDENTICAL predicate the guard used (name + orientation-independent table
+    // pair), so "what the guard approved" can never diverge from "what the builder emits" — even
+    // if a future allow-list ever carried two same-named relationships (Gate-2 review F2/F3).
+    const pair = new Set([p.table, p.joinTable]);
+    const rel = allowList.relationships.find(
+      (r) => r.name === p.relationship && pair.has(r.fromTable) && pair.has(r.toTable),
+    );
     if (!rel) throw new Error('relationship missing post-guard');
     fromClause +=
       ` JOIN ${quoteIdent(p.joinTable)}` +

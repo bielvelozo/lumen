@@ -355,6 +355,45 @@ failed re-key never overwrites the stored ciphertext). Zero HIGH/MEDIUM findings
 commented while the executed migrations enforce single-column `UNIQUE(org_id)` — RESOLVED
 by syncing `db/schema.sql` to the migrations (no exploit; migrations are the live source).
 
+### 12-query-registry | open-question defaults
+2026-06-18 — Defaults taken (all spec-12 open questions). (1) Needs declaration: a typed
+manifest object per function (`{tables, columns:[{table,column,family?}], relationships}`)
+the guard reads field-by-field — adding a function is "declare needs + Zod schema + builder."
+(2) Filters (`filtered_aggregate`): equality + range only (`eq`/`gte`/`lte`) on exposed
+columns; richer predicates later. (3) Time grains: `day`/`week`/`month`, UTC buckets via
+`DATE_FORMAT`. (4) Type-family check: coarse from the snapshot — sum/avg metric column must be
+numeric, date-bucket column must be temporal; count(col) needs no family; mismatch =
+`type_mismatch` refusal. (5) Ceilings: `RESULT_ROW_LIMIT=1000` grouped rows + `max_execution_time`
+10s per statement (global v1; revisit with 13). (6) Identifier quoting: allow-list membership
+(guard) + `^[A-Za-z0-9_]+$` assertion + backtick-escape — triple defense.
+
+### 12-query-registry | identifier charset is a v1 limitation (Gate-2 F1)
+2026-06-18 — The SQL-layer identifier assertion is strict `^[A-Za-z0-9_]+$` (the right
+invariant — it's a hard wall against identifier injection). Consequence (Gate-2 review F1):
+an exposed table/column whose REAL MySQL name contains a hyphen/space/dot/non-ASCII is
+exposable (introspection stores raw names) but fails CLOSED at build with a sanitized
+`query_failed` — safe, but that data is unqueryable in v1. Accepted as a v1 limitation: the
+vast majority of schemas use `[A-Za-z0-9_]` names. FOLLOW-UP (spec 09, non-blocking): reject
+non-conforming identifiers at the exposure boundary so the limitation surfaces where the owner
+can act. Not a vulnerability (fail-closed). See the learning
+`query-functions-injection-proof-by-allowlist-membership`.
+
+### 12-query-registry | Gate-2 CRITICAL data-access review result
+2026-06-18 — Gate 2 (data-access-review-gates) run on the spec-12 diff with mechanical
+re-confirmation. All four checks UPHELD: (i) NO model string reaches SQL as a value (all bound
+`?`) OR identifier (only guard-validated allow-list members, charset-asserted + backtick-escaped;
+LIMIT is a backend constant); (ii) a JOIN is emitted only from a guard-matched
+`exposed_relationships` row, reads only over `exposed_tables`; (iii) org/connection/exposed-set
+resolved ONLY by the passed-in `org_id` (JWT in 13) — cross-tenant refs resolve to nothing;
+(iv) single read-only `SELECT` only (builder shape + `assertReadOnlySelect` + `multipleStatements:
+false` + LIMIT/timeout). No injection/cross-tenant/write/leak break could be constructed. Findings:
+F2/F3 (MEDIUM, latent under future multi-connection — guard matched a relationship by name+pair but
+build re-fetched by name only) RESOLVED by making build use the identical name+pair predicate +
+regression test; F1 (MEDIUM, robustness, fail-closed) documented above; F4/F5 (LOW) — filter values
+bound-as-strings (intentional v1) and the read-only backstop (already triple-layered), no change.
+GUARD TEST present: injection column → `column_not_exposed` refusal, builder/runner never reached
+(unit + live, table left intact).
+
 ### 16-deploy | managed Postgres provider
 2026-06-17 — `[CONFIRM-WITH-HUMAN]` Default: pick one of **Neon / Supabase**; use
 the direct (non-pooled) URL for the migration step and a pooled URL for the app if

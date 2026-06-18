@@ -1,8 +1,8 @@
 ---
-status: draft
+status: shipped
 feature: query-function-registry
 created: 2026-06-17
-shipped: null
+shipped: 2026-06-18
 ---
 # Query Function Registry — Spec
 
