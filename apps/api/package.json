@@ -9,13 +9,21 @@
     "build": "tsc --noEmit",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:seed": "tsx src/db/seed.ts"
   },
   "dependencies": {
     "@lumen/shared": "workspace:*",
-    "fastify": "^5.1.0"
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.38.3",
+    "fastify": "^5.1.0",
+    "pg": "^8.13.1"
   },
   "devDependencies": {
+    "@types/pg": "^8.11.10",
+    "drizzle-kit": "^0.30.1",
     "tsx": "^4.19.2",
     "vitest": "^2.1.8"
   }
