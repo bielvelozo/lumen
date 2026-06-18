@@ -23,6 +23,12 @@ import { createMysqlSchemaIntrospector } from './db-connection/schema-introspect
 import { makeDrizzleAiConnectionStore } from './ai-connection/ai-connection.store';
 import { createAiConnectionService } from './ai-connection/ai-connection.service';
 import { createAiSdkValidator } from './ai-connection/claude-validator';
+import { makeDrizzleChatStore } from './chat/chat.store';
+import { makeDrizzleFunctionLogStore } from './chat/function-log.store';
+import { createChatService } from './chat/chat.service';
+import { createAiSdkChatModel } from './chat/chat-model';
+import { makeDrizzleAllowListAccessor } from './query-registry/allow-list';
+import { createMysql2QueryRunner } from './query-registry/query-runner';
 
 // Access token ~15 min; refresh 30 days (fixed lifetime, v1). See DECISIONS.md.
 const ACCESS_TTL_SECONDS = 15 * 60;
@@ -105,6 +111,20 @@ const aiConnectionService = createAiConnectionService({
   decrypt: crypto.decrypt,
 });
 
+// Chat orchestrator (spec 13) — ties Claude (Vercel AI SDK) + the query-function registry +
+// the read-only MySQL. The same crypto module decrypts the Claude key + MySQL password
+// in-process per request; neither plaintext is ever logged or persisted.
+const chatStore = makeDrizzleChatStore(db);
+const chatService = createChatService({
+  chatStore,
+  logStore: makeDrizzleFunctionLogStore(db),
+  aiConnectionStore: makeDrizzleAiConnectionStore(db),
+  allowListAccessor: makeDrizzleAllowListAccessor(db),
+  runner: createMysql2QueryRunner({ decrypt: crypto.decrypt }),
+  modelPort: createAiSdkChatModel(),
+  decrypt: crypto.decrypt,
+});
+
 const app = buildApp({
   signupService,
   verificationService,
@@ -116,6 +136,7 @@ const app = buildApp({
   },
   dbConnection: { consentService, dbConnectionService, exposureService, accessTokenService },
   aiConnection: { aiConnectionService, accessTokenService },
+  chat: { service: chatService, chatStore, accessTokenService },
 });
 
 app

@@ -17,6 +17,8 @@ import type { ExposureService } from './db-connection/exposure.service';
 import { registerExposureRoutes } from './db-connection/exposure.route';
 import type { AiConnectionService } from './ai-connection/ai-connection.service';
 import { registerAiConnectionRoutes } from './ai-connection/ai-connection.route';
+import type { ChatRouteDeps } from './chat/chat.route';
+import { registerChatRoutes } from './chat/chat.route';
 
 /**
  * Dependencies injected into the app. Optional so `/health` (and the existing
@@ -40,6 +42,10 @@ export interface AppDeps {
   /** AI-connection (Claude BYO key) routes (spec 11). `requireAuth` from the JWT. */
   aiConnection?: {
     aiConnectionService: AiConnectionService;
+    accessTokenService: AccessTokenService;
+  };
+  /** Chat orchestrator routes (spec 13). `requireAuth` from the JWT. */
+  chat?: ChatRouteDeps & {
     accessTokenService: AccessTokenService;
   };
 }
@@ -66,7 +72,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
 
   // The cookie plugin must load ONCE, before any route/requireAuth that reads cookies.
   // Register it if any cookie-dependent feature is wired.
-  if (deps.auth || deps.dbConnection || deps.aiConnection) {
+  if (deps.auth || deps.dbConnection || deps.aiConnection || deps.chat) {
     app.register(cookie);
   }
 
@@ -88,6 +94,11 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
   if (deps.aiConnection) {
     const requireAuth = makeRequireAuth(deps.aiConnection.accessTokenService);
     registerAiConnectionRoutes(app, deps.aiConnection.aiConnectionService, requireAuth);
+  }
+
+  if (deps.chat) {
+    const requireAuth = makeRequireAuth(deps.chat.accessTokenService);
+    registerChatRoutes(app, { service: deps.chat.service, chatStore: deps.chat.chatStore }, requireAuth);
   }
 
   return app;

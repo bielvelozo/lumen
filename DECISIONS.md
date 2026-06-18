@@ -486,6 +486,23 @@ recipient only, never the link/token) and all unit tests use a fake sender (no r
 email in CI). The real `resendEmailSender` (fetch -> api.resend.com) is implemented
 but UNVERIFIED against the live API until a key + verified domain exist.
 
+LIVE-VERIFICATION-PENDING: chat end-to-end (spec 13) — the live test
+`apps/api/src/chat/chat.live.integration.test.ts` ("live: chat end-to-end") is gated on
+`MYSQL_URL` and SKIPS in the default `pnpm test`. Ran GREEN on 2026-06-18 vs Docker MySQL:
+the full chat tool-loop (real query-tools -> real spec-12 executor -> real mysql2 runner) with
+a FAKE model port picking `aggregate_over_time` returned the EXACT May sum (350) from MySQL,
+the assistant message + stream carried it, and one sanitized `function_call_logs` row was
+written (no schema name/value). The orchestrator + unhappy paths are fully unit-tested with a
+fake model port; the real AI SDK adapter (`createAiSdkChatModel`) is exercised only by the
+ANTHROPIC_API_KEY-gated path. Re-confirm in the final gate.
+
+LIVE-VERIFICATION-PENDING: real Claude chat call (spec 13) — `createAiSdkChatModel`
+(Vercel AI SDK `streamText` + tools + `stepCountIs`) is UNVERIFIED against the live Anthropic
+API until a BYO key is supplied; CI uses a fake `ChatModelPort`. No env-gated live test ships
+for it in v1 (the orchestration is covered by the fake; the real streaming/tool-loop is a
+manual/operator verification once a key exists). The error->category mapping it reuses
+(`categorizeProviderError`, spec 11) is unit-tested.
+
 LIVE-VERIFICATION-PENDING: query-function end-to-end (spec 12) — the live test
 `apps/api/src/query-registry/executor.live.integration.test.ts` ("live: query-function
 end-to-end") is gated on `MYSQL_URL` and SKIPS in the default `pnpm test`. Ran GREEN on
