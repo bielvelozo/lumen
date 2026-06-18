@@ -43,7 +43,7 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
 ### Phase 4 — Chat (the core)
 - **Shipped** — [[../specs/12-query-function-registry/spec|12 · Query-function registry]] — the predefined, parameterized, read-only query functions over exposed tables/relationships; allow-list enforcement; backend builds the SQL, never the model. _The constitutional heart. Deps: 09._
 - **Shipped** — [[../specs/13-chat-orchestrator/spec|13 · Chat orchestrator]] — Fastify route + AI SDK tool-calling mapping model tool calls → query functions; streaming; persist `messages` (org-scoped); `function_call_logs` (sanitized); unhappy paths. _Deps: 11, 12._
-- **In progress** — [[../specs/14-chat-ui/spec|14 · Chat UI]] — sessions list, streaming message render on solid surfaces (glass only on chrome/input), model switch. _Deps: 06, 13._
+- **Shipped** — [[../specs/14-chat-ui/spec|14 · Chat UI]] — sessions list, streaming message render on solid surfaces (glass only on chrome/input), model switch. _Deps: 06, 13._
 
 ### Phase 5 — Observability & deploy
 - **Planned** — [[../specs/15-observability-sentry/spec|15 · Observability]] — Sentry (api + web); error/log sanitization that never carries raw customer data; `function_call_logs` audit view. _Deps: 13._
@@ -77,6 +77,19 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
   best-effort post-commit via a `VerificationTrigger` seam (spec 04 fills it). Service
   + route unit tests; live store integration (atomic tx + UNIQUE rollback) ran green vs
   Docker Postgres. All gates green.
+- **14 · Chat UI** — shipped 2026-06-18. The Flow-4 frontend — the product's main screen, in
+  spec-06's protected shell. Two panes: a GLASS sessions sidebar (chrome, `updated_at` desc,
+  create/select/rename) + a SOLID conversation column (`ChatBubble`s, figures in `tabular-nums`)
+  with a GLASS input + curated model switcher. Send → optimistic user bubble → incremental
+  streamed assistant text (a `fetch`+`ReadableStream` SSE reader over POST — `EventSource` can't
+  POST; chunk-boundary safe; `AbortController`) → settle by invalidating the messages query;
+  input locks during the stream. Gating CTA (links to 10/11) when a prerequisite connection
+  isn't active; sanitized error panels on solid surfaces. `/chat` + `/chat/:sessionId` render the
+  SAME element so the first-send create→navigate doesn't kill the stream. Small backend
+  extension: `GET /chat/sessions`, `GET /chat/sessions/:id/messages`, `PATCH /chat/sessions/:id`
+  (org-scoped, cross-tenant → 404) + an optional per-turn `model` override on send. GUARD: glass-
+  only RTL test (no bubble/card/metric/figure under `.glass`) passes; a lib test asserts no
+  request carries an `org_id`. 51 web + 253 api (+35 skips) + 57 shared tests green.
 - **13 · Chat orchestrator** — shipped 2026-06-18. Flow 4 — the request loop tying Claude
   (Vercel AI SDK) + the spec-12 registry + read-only MySQL. **Gate-2 CRITICAL** (all four checks
   UPHELD; 3 LOW, L3 resolved). `POST /chat/sessions` + SSE `POST /chat/sessions/:id/messages`

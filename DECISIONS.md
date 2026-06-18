@@ -428,6 +428,26 @@ partial text on `error` (noted as a consumer contract). GUARD TESTS present: no-
 → 404 (route test), secret/log-scan (service test: key never in messages; query-tools: no
 secret/host/value in logs).
 
+### 14-chat-ui | open-question defaults + backend extension
+2026-06-18 — Defaults taken (all spec-14 open questions). (1) Transport: consume spec-13's SSE
+wire format (`text-delta`* then one `done`{messageId,model}|`error`{code,message}); the UI
+switches state on the discriminator. (2) Session creation: first send in `/chat` (no id) creates
+the session (`POST /chat/sessions`), client navigates to `/chat/:id`, then streams — no orphan
+sessions. (3) Title: placeholder on create + spec-13 auto-title from the first question; user
+rename always wins (`PATCH /chat/sessions/:id`, does NOT bump updated_at so order is unchanged).
+(4) Tabular answers: v1 renders assistant text in a solid `ChatBubble` (figures in `tabular-nums`
+via `.ds-num`); a structured table payload is deferred. (5) Model list: curated `CLAUDE_MODELS`
+(shared), switcher default from `ai_connections.default_model`; the choice rides the next send as
+an optional `model` override. (6) Stop/cancel: client-side `AbortController`; a discarded partial
+isn't persisted (13 persists the assistant message only on `done`).
+Backend extension (the UI needs reads/rename spec 13 didn't ship; all `getAuth`-only, anti-IDOR,
+cross-tenant `:sessionId` → 404): `GET /chat/sessions` (list, updated_at desc), `GET
+/chat/sessions/:id/messages` (history), `PATCH /chat/sessions/:id` (rename), and an OPTIONAL
+`model` (curated enum) on the send body the orchestrator uses over the org default. Not
+security-weakening (same org-scoped seam as spec 13). GUARD: glass-only RTL test passes
+(no bubble/card/metric/figure under `.glass`; sidebar + input MAY be glass); a lib test asserts
+no chat request carries an org_id.
+
 ### 16-deploy | managed Postgres provider
 2026-06-17 — `[CONFIRM-WITH-HUMAN]` Default: pick one of **Neon / Supabase**; use
 the direct (non-pooled) URL for the migration step and a pooled URL for the app if
