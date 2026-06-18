@@ -276,6 +276,26 @@ index (migration 0002) so create-or-update is an atomic upsert keyed by `org_id`
 RESOLVES the earlier 01 decision (index absent). Not security-weakening (the index +
 org-from-JWT strengthen isolation).
 
+### 09-exposure | API surface + names-only exposure request
+2026-06-18 — Default taken: `GET /db-connection/introspect` (live discovered schema),
+`GET /db-connection/exposure` (current allow-list), `PUT /db-connection/exposure`
+(REPLACE the whole allow-list — subsumes expose/un-expose, idempotent). The PUT body is
+**names-only** (`{ tableNames[], relationshipNames[] }`, `.strict()`, no connection id);
+the backend re-introspects, validates the chosen names against the live schema, and
+builds the persisted rows from the INTROSPECTION (column snapshot + FK direction) — the
+client can never inject a fake table/column/relationship. Gate-2 clean. Coord with 10.
+
+### 09-exposure | un-expose semantics + composite FKs + relationship_name + drift
+2026-06-18 — Defaults taken: (un-expose) replace-the-whole-set in ONE transaction →
+omitted tables and any relationship referencing them are removed atomically (no dangling
+relationship can survive; `db_connection_id` FK also CASCADE). (composite FKs) SKIP
+multi-column FKs in v1 — only single-column FKs are surfaced (a constraint with >1
+KEY_COLUMN_USAGE row is dropped). (relationship_name) deterministic
+`${fromTable}__${fromColumn}__${toTable}` (stable across re-introspection, disambiguates
+multiple FKs between the same table pair). (drift) v1 keeps the point-in-time `columns`
+snapshot; re-running exposure refreshes it (no live sync / no drift flagging) — the read
+path (spec 12) is bounded by the allow-list regardless. Not security-weakening.
+
 ### 16-deploy | managed Postgres provider
 2026-06-17 — `[CONFIRM-WITH-HUMAN]` Default: pick one of **Neon / Supabase**; use
 the direct (non-pooled) URL for the migration step and a pooled URL for the app if
@@ -339,6 +359,21 @@ unreachable-port→fast-fail). This satisfies RALPH 7(2) (08 must run live MySQL
 Re-confirm in the final live gate. NOTE: real-customer caching_sha2_password over
 plaintext (no SSL) may need `allowPublicKeyRetrieval`/SSL — the test user uses
 mysql_native_password; revisit with the SSL story at spec 16.
+
+LIVE-VERIFICATION-PENDING: apps/api live MySQL schema introspection
+(`src/db-connection/schema-introspector.live.integration.test.ts` -> "live: MySQL schema
+introspection") is gated on `MYSQL_URL`. SKIPS in the default `pnpm test`. Run GREEN on
+2026-06-18 vs Docker MySQL (as root provision a test DB with single + composite FKs + a
+secret data row + a SELECT-only user; introspect AS the read-only user → assert tables/
+columns/single-FK shape, composite FK skipped, and the secret data row is NOT read).
+Satisfies RALPH 7(2) (09 must run live introspection once). Re-confirm in the final gate.
+
+LIVE-VERIFICATION-PENDING: apps/api exposure-store integration
+(`src/db-connection/exposure.store.integration.test.ts` -> "live: exposure store") is
+gated on `DATABASE_URL`. SKIPS in the default `pnpm test`. Run GREEN on 2026-06-18 vs
+Docker Postgres (throwaway DB: atomic replace round-trip, idempotent re-save, un-expose
+cascade (omitting a table drops its relationships), org/connection scoping +
+cross-tenant). Re-confirm in the final gate.
 
 LIVE-VERIFICATION-PENDING: cross-site cookie behavior (spec 05) — the
 `Secure`+`SameSite=None` auth cookies require HTTPS; over plain-HTTP local dev the

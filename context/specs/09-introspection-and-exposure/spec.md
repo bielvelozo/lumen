@@ -1,8 +1,8 @@
 ---
-status: draft
+status: shipped
 feature: introspection-and-exposure
 created: 2026-06-17
-shipped: null
+shipped: 2026-06-18
 ---
 # Schema Introspection & Exposure Allow-List — Spec
 

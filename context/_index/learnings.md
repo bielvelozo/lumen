@@ -19,6 +19,7 @@ Learnings here are specific to Business Assistant. Code style conventions live i
 - [[../learnings/glass-only-rtl-guard-test|Enforcing glass-only-on-chrome with an RTL guard test]] — assert no `.glass .card/.metric/.bubble` and `getByText(number).closest('.glass')` is null; required for specs 06/10/14 (spec 06).
 - [[../learnings/generated-sql-least-privilege-by-construction|The onboarding script is least-privilege BY CONSTRUCTION]] — only emit `CREATE USER`+`GRANT SELECT`+`FLUSH`; test allow+deny-list over comment-stripped SQL; validate embedded identifiers; spec 08 must still detect-and-reject root (spec 07).
 - [[../learnings/mysql-privilege-check-allowlist-not-denylist|Verify "read-only" with an allowlist, never a denylist]] — over-privileged unless every `SHOW GRANTS` token ∈ {SELECT,USAGE,SHOW VIEW}; catches MySQL 8 dynamic/admin/PROXY; test BEFORE persisting the secret (spec 08).
+- [[../learnings/exposure-allowlist-client-chooses-backend-derives|The exposure allow-list takes client CHOICES (names), not client DATA]] — client sends names only; backend re-introspects + derives columns/FKs; validated name = membership lookup, never SQL identifier; whole-set replace in one tx (cascade/idempotent). Specs 12/13 read only these rows (spec 09).
 
 ## `#reference` — Environment and commands
 

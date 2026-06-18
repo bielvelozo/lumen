@@ -34,7 +34,7 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
 ### Phase 2 — Connect the client DB (MySQL)
 - **Shipped** — [[../specs/07-db-connection-consent-and-script/spec|07 · Consent & onboarding script]] — terms/consent capture; generate the read-only onboarding SQL script for the customer. _Deps: 05, 06._
 - **Shipped** — [[../specs/08-db-connection-create-and-test/spec|08 · Create & test connection]] — create `db_connections`; encrypt password; live MySQL connection test; `status` (pending/active/failed) + sanitized `last_error`; read-only/least-privilege checks. _Deps: 02, 07._
-- **In progress** — [[../specs/09-introspection-and-exposure/spec|09 · Introspection & exposure]] — introspect tables/columns/FKs; owner approves `exposed_tables` + `exposed_relationships` (allow-list). _Deps: 08._
+- **Shipped** — [[../specs/09-introspection-and-exposure/spec|09 · Introspection & exposure]] — introspect tables/columns/FKs; owner approves `exposed_tables` + `exposed_relationships` (allow-list). _Deps: 08._
 - **Planned** — [[../specs/10-connect-db-ui/spec|10 · Connect-DB UI]] — frontend for the full connect-DB flow (consent → script → credentials → test → choose tables/relationships → status). _Deps: 06, 07, 08, 09._
 
 ### Phase 3 — Connect the AI (Claude)
@@ -77,6 +77,20 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
   best-effort post-commit via a `VerificationTrigger` seam (spec 04 fills it). Service
   + route unit tests; live store integration (atomic tx + UNIQUE rollback) ran green vs
   Docker Postgres. All gates green.
+- **09 · Introspection & exposure** — shipped 2026-06-18. Flow-2 second half (backend;
+  UI is spec 10) — the least-privilege data boundary specs 12/13 are bound to. **Gate-2
+  CRITICAL** `/security-review`: all four checks PASS, no findings. `GET
+  /db-connection/introspect` discovers the customer's schema **read-only** (mysql2 over
+  `information_schema` only — TABLES/COLUMNS/KEY_COLUMN_USAGE, parameterized by the
+  connection's own db name; single-column FKs only, composite skipped; verified no
+  data-row read). `PUT /db-connection/exposure` takes the owner's **names-only** choices,
+  re-introspects to validate + snapshot, enforces the same-connection invariant (a
+  relationship needs both tables exposed), and **replaces the whole allow-list in one
+  transaction** (un-expose cascade, idempotent). Everything persisted is backend-derived
+  (columns + FK direction) — a client can't inject fake schema. All routes `requireAuth`;
+  connection resolved by JWT org only (no client connection id — anti-IDOR cross-tenant
+  test). Unit + **live MySQL introspection & live Postgres exposure-store integration ran
+  green** vs Docker.
 - **08 · Create & test connection** — shipped 2026-06-18. Flow-2 gate 2 (backend; UI is
   spec 10). `PUT /db-connection` upserts the org's single `db_connections` row (keyed by the
   new `uq_dbconn_org`, migration 0002), **encrypts the password** (spec 02 AES-256-GCM →
