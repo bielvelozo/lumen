@@ -143,6 +143,45 @@ path does extra work (issue + send) so latency is not perfectly constant. Accept
 best-effort per the spec; a constant-time wrapper can be added with the rate-limit
 hardening at spec 16. Not a new secret decision.
 
+### 05-login | access/refresh TTL + sliding
+2026-06-18 — `[CONFIRM-WITH-HUMAN]` Default: access JWT **15 min**; refresh **30 days**,
+**FIXED** (not sliding) for v1 simplicity. Access token is short so the
+unrevocable-access-token window is small; sensitive state lives behind the revocable
+refresh token. Flagged (security-relevant TTL choice).
+
+### 05-login | refresh cookie path scope
+2026-06-18 — `[CONFIRM-WITH-HUMAN]` Default: **Path=/auth** for the refresh cookie
+(browser only sends it to `/auth/*` — least surface); access cookie Path=/. Flagged.
+
+### 05-login | refresh-token reuse response
+2026-06-18 — `[CONFIRM-WITH-HUMAN]` Default: on detected reuse of an already-rotated
+(revoked) refresh token, **revoke the entire token family** for that user (all live
+refresh rows) + 401 — defense-in-depth over usability. Implemented in
+`session.store.rotateRefreshToken` (verified by the live integration test). Flagged.
+
+### 05-login | login rate limiting
+2026-06-18 — `[CONFIRM-WITH-HUMAN]` Default: a modest **per-email in-memory limit
+(10 / 15 min)** via `createInMemoryRateLimiter` so login isn't trivially
+brute-forceable; a non-existent email is limited identically (no enumeration). Per-IP
+keying + a shared/distributed store are deferred to spec 16. Flagged.
+
+### 05-login | refresh_tokens cleanup cadence
+2026-06-18 — Default: **lazy** — expired/revoked rows are simply rejected on use; a
+scheduled prune (cron) is deferred to spec 16. Not security-weakening (expiry is
+enforced in the rotate predicate). Recorded without the human-confirm flag.
+
+### 05-login | login + /auth/me payload shape
+2026-06-18 — Default: `{ userId, orgId, email }` (no token material; tokens live only
+in httpOnly cookies). `/auth/me` resolves email via a session lookup (the JWT stays
+minimal: `{ userId, orgId }`). Coordinate exact fields with spec 06. Recorded.
+
+### 05-login | JWT_SECRET entropy floor (security-review fix)
+2026-06-18 — Gate-1 `/security-review` LOW finding RESOLVED: `JWT_SECRET` now validated
+to **>= 32 chars** in the shared env schema (was `min(1)`), mirroring
+`SECRETS_ENCRYPTION_KEY`'s rigor — a weak HS256 key is offline-forgeable. No HIGH/MEDIUM
+findings; all four invariants (org_id-from-JWT, refresh hashed-only + atomic rotation +
+reuse detection, cookie flags, no-secret-in-logs) verified.
+
 ### 07-08-consent | consent vs `encrypted_password NOT NULL`
 2026-06-17 — `[CONFIRM-WITH-HUMAN]` Default: **Option B** — a lightweight
 `db_connection_consents` table (`org_id`, `consent_version`, `accepted_at`,
@@ -198,6 +237,20 @@ against local Docker Postgres (throwaway `lumen_verification_test` DB: migrate, 
 assert issue persists ONLY the hash (raw never in the row), consume flips the user +
 `used_at` atomically with benign replay, unknown/expired -> invalid, and reissue
 invalidates the prior unused token). Re-confirm in the §7(2) final live gate.
+
+LIVE-VERIFICATION-PENDING: apps/api session-store integration test
+(`src/auth/session.store.integration.test.ts` -> "live: session store") is gated on
+`DATABASE_URL`. SKIPS in the default `pnpm test`. Run GREEN on 2026-06-18 against local
+Docker Postgres (throwaway `lumen_session_test` DB: migrate, then assert refresh tokens
+persist ONLY the hash (raw never in the row), rotation revokes the old row + inserts a
+new one, replay of a rotated token is reuse_detected + revokes the whole family, and
+unknown/expired -> invalid). Re-confirm in the §7(2) final live gate.
+
+LIVE-VERIFICATION-PENDING: cross-site cookie behavior (spec 05) — the
+`Secure`+`SameSite=None` auth cookies require HTTPS; over plain-HTTP local dev the
+browser rejects them. Verified in tests via `app.inject` (no browser enforcement); real
+cross-origin Pages<->API cookie flow is finalized + verified at deploy (spec 16) with
+TLS. Operator step.
 
 LIVE-VERIFICATION-PENDING: real Resend email send (spec 04) is gated on
 `RESEND_API_KEY` + a verified sender domain (a human/DNS step, finalized at spec 16).

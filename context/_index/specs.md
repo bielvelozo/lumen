@@ -28,7 +28,7 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
 ### Phase 1 — Base & Auth
 - **Shipped** — [[../specs/03-signup-and-org/spec|03 · Signup & org creation]] — signup creates org + owner user; password hashed; validation. _Deps: 01, 02._
 - **Shipped** — [[../specs/04-email-verification/spec|04 · Email verification]] — Resend; hashed single-use expiring token; verify + resend endpoints. _Deps: 03._
-- **In progress** — [[../specs/05-login-jwt-sessions/spec|05 · Login, JWT & sessions]] — login; JWT in httpOnly/Secure/SameSite=None cookie; refresh-token rotation (hashed, revocable); logout; auth middleware that derives `org_id` from the JWT (anti-IDOR foundation). _Deps: 02, 03._
+- **Shipped** — [[../specs/05-login-jwt-sessions/spec|05 · Login, JWT & sessions]] — login; JWT in httpOnly/Secure/SameSite=None cookie; refresh-token rotation (hashed, revocable); logout; auth middleware that derives `org_id` from the JWT (anti-IDOR foundation). _Deps: 02, 03._
 - **Planned** — [[../specs/06-web-shell-and-auth-ui/spec|06 · Web shell & auth UI]] — port the design system into `apps/web`; AppBackground, theme toggle, router, TanStack Query, auth pages, protected-route guard. _Deps: 00, 03, 04, 05._
 
 ### Phase 2 — Connect the client DB (MySQL)
@@ -77,6 +77,18 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
   best-effort post-commit via a `VerificationTrigger` seam (spec 04 fills it). Service
   + route unit tests; live store integration (atomic tx + UNIQUE rollback) ran green vs
   Docker Postgres. All gates green.
+- **05 · Login, JWT & sessions** — shipped 2026-06-18. `POST /auth/login` (argon2
+  verify + `email_verified` gate, timing-uniform via a dummy-hash verify on unknown
+  emails, per-email rate limit) issues a 15-min HS256 access JWT (`jose`, alg pinned)
+  + a 30-day refresh token, both in httpOnly/Secure/SameSite=None cookies (refresh
+  Path=/auth). `/auth/refresh` rotates atomically (one conditional UPDATE...RETURNING,
+  no TOCTOU) with reuse detection → family revoke; `/auth/logout` revokes + clears
+  (idempotent); `/auth/me` is requireAuth-guarded. The **`requireAuth` preHandler +
+  `getAuth()`** is the single `org_id` source from the JWT (anti-IDOR cornerstone for
+  08–14) — guard test proves a client-supplied org_id is ignored. Refresh tokens
+  persisted hash-only (guard test). Gate-1 `/security-review`: no HIGH/MEDIUM; LOW
+  JWT_SECRET-entropy finding resolved (>=32 chars). Unit + live session-store
+  integration green vs Docker Postgres.
 - **04 · Email verification** — shipped 2026-06-18. Issue → email → consume lifecycle
   over `email_verification_tokens`: spec-02 `generateToken` (32-byte CSPRNG) with only
   the SHA-256 hash persisted (raw lives solely in the link — guard test). `POST

@@ -1,12 +1,12 @@
 ---
-status: draft
+status: shipped
 feature: login-jwt-sessions
 created: 2026-06-17
-shipped: null
+shipped: 2026-06-18
 ---
 # Login, JWT & Sessions — Spec
 
-**Status:** Draft
+**Status:** Shipped
 **Scope:** `POST /auth/login` (password verify + `email_verified` gate), short-lived JWT in an httpOnly cookie carrying `user_id`/`org_id`, hashed-and-rotated refresh tokens, `/auth/refresh`, `/auth/logout`, `/auth/me`, and — the cornerstone — a **Fastify auth decorator** that is the single source of `org_id` for every downstream handler (anti-IDOR foundation). Flow 1 + Decision 7.
 
 ## Context
