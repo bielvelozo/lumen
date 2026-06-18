@@ -1,8 +1,8 @@
 ---
-status: draft
+status: shipped
 feature: web-shell-and-auth-ui
 created: 2026-06-17
-shipped: null
+shipped: 2026-06-18
 ---
 # Web Shell & Auth UI — Spec
 

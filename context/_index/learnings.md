@@ -15,6 +15,8 @@ Learnings here are specific to Business Assistant. Code style conventions live i
 - [[../learnings/signup-unique-violation-is-the-rollback-proof|Signup's duplicate-email path IS the rollback-atomicity proof]] — one tx (org→owner) + DB `UNIQUE(email)`: a duplicate naturally rolls back the org insert too; catch `23505`, return uniform 201; the same shape recurs in specs 08/11 (spec 03).
 - [[../learnings/single-use-token-atomic-consume-no-toctou|Single-use token consume = one conditional UPDATE, not read-then-write]] — `UPDATE ... WHERE used_at IS NULL AND expires_at>now RETURNING user_id`; 0 rows = not consumed; resolve `already_verified` vs `invalid` with a follow-up read; reuse for refresh tokens (spec 04→05).
 - [[../learnings/org-id-only-from-requireauth-getauth|`org_id` comes ONLY from `getAuth(request)` — the single anti-IDOR seam]] — `requireAuth` verifies the JWT (alg pinned) and attaches `{ userId, orgId }`; every data-reading spec (08–14) scopes by `getAuth(request).orgId`, never client input (spec 05).
+- [[../learnings/auth-bootstrap-via-me-httponly-cookie|The SPA can't read the auth cookie — bootstrap from `GET /auth/me`]] — httpOnly cookie is invisible to JS; gate the tree on the `me` query (401→null), splash while pending; never send a tenant id (spec 06).
+- [[../learnings/glass-only-rtl-guard-test|Enforcing glass-only-on-chrome with an RTL guard test]] — assert no `.glass .card/.metric/.bubble` and `getByText(number).closest('.glass')` is null; required for specs 06/10/14 (spec 06).
 
 ## `#reference` — Environment and commands
 

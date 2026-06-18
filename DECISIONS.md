@@ -182,6 +182,44 @@ to **>= 32 chars** in the shared env schema (was `min(1)`), mirroring
 findings; all four invariants (org_id-from-JWT, refresh hashed-only + atomic rotation +
 reuse detection, cookie flags, no-secret-in-logs) verified.
 
+### 06-web | /auth/me response shape used by the client
+2026-06-18 — `[CONFIRM-WITH-HUMAN]` Default: the client consumes spec-05's actual
+`/auth/me` = `{ userId, orgId, email }`. The client HOLDS `orgId` (for nothing — the
+topbar shows email/initials) but the fetch wrapper NEVER sends it; the server always
+derives the tenant from the JWT cookie. Anti-IDOR holds and is tested
+(api-client.test "no request carries an org_id"). Flagged because it touches `org_id`;
+a future tidy could drop `orgId` from `/auth/me` to a display-only `{ email }`.
+
+### 06-web | login wrong-creds vs unverified
+2026-06-18 — Default taken: spec 05 returns **403 EmailNotVerified** only after a
+CORRECT password; the login UI shows a generic "e-mail ou senha inválidos" for 401
+(no enumeration) and, on 403, offers a "reenviar link" action (spec-04 resend). Recorded.
+
+### 06-web | post-login redirect policy
+2026-06-18 — Default taken: honor `?from=` but **clamp to same-origin in-app paths**
+(`safeFrom` rejects `//host`, `http://…`, etc. → falls back to `/`) to avoid
+open-redirect. Recorded (touches the redirect surface).
+
+### 06-web | router mode + data loading
+2026-06-18 — Default taken: declarative `<Routes>` + a component guard
+(`RequireAuth`/`PublicOnly`) backed by the `me` query — the single bootstrap choke
+point. TanStack Query for `me`/mutations (no `useEffect`+fetch). Not security-sensitive.
+
+### 06-web | client rate-limit / captcha
+2026-06-18 — Default taken: **defer** bot-protection to the backend; the UI reserves a
+cooldown affordance (resend buttons disable after success). Recorded.
+
+### 06-web | copy language / i18n
+2026-06-18 — Default taken: inline **pt-BR** copy, no i18n framework yet. Recorded.
+
+### 06-web | password-reset backend endpoints (gap)
+2026-06-18 — `POST /auth/forgot-password` and `POST /auth/reset-password` are NOT in
+the 00-16 backlog (spec 05 excludes password reset; no dedicated spec exists). The
+spec-06 UI for both is built and tested against MOCKS; the live endpoints are a
+DEFERRED future backend slice. Forgot-password UI is non-enumerating (uniform message
+on settle); reset validates the shared `passwordPolicySchema`. Recorded as a known v1
+gap — these two screens will 404 in production until a backend slice adds the routes.
+
 ### 07-08-consent | consent vs `encrypted_password NOT NULL`
 2026-06-17 — `[CONFIRM-WITH-HUMAN]` Default: **Option B** — a lightweight
 `db_connection_consents` table (`org_id`, `consent_version`, `accepted_at`,

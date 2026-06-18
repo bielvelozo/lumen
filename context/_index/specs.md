@@ -29,7 +29,7 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
 - **Shipped** — [[../specs/03-signup-and-org/spec|03 · Signup & org creation]] — signup creates org + owner user; password hashed; validation. _Deps: 01, 02._
 - **Shipped** — [[../specs/04-email-verification/spec|04 · Email verification]] — Resend; hashed single-use expiring token; verify + resend endpoints. _Deps: 03._
 - **Shipped** — [[../specs/05-login-jwt-sessions/spec|05 · Login, JWT & sessions]] — login; JWT in httpOnly/Secure/SameSite=None cookie; refresh-token rotation (hashed, revocable); logout; auth middleware that derives `org_id` from the JWT (anti-IDOR foundation). _Deps: 02, 03._
-- **In progress** — [[../specs/06-web-shell-and-auth-ui/spec|06 · Web shell & auth UI]] — port the design system into `apps/web`; AppBackground, theme toggle, router, TanStack Query, auth pages, protected-route guard. _Deps: 00, 03, 04, 05._
+- **Shipped** — [[../specs/06-web-shell-and-auth-ui/spec|06 · Web shell & auth UI]] — port the design system into `apps/web`; AppBackground, theme toggle, router, TanStack Query, auth pages, protected-route guard. _Deps: 00, 03, 04, 05._
 
 ### Phase 2 — Connect the client DB (MySQL)
 - **Planned** — [[../specs/07-db-connection-consent-and-script/spec|07 · Consent & onboarding script]] — terms/consent capture; generate the read-only onboarding SQL script for the customer. _Deps: 05, 06._
@@ -77,6 +77,18 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
   best-effort post-commit via a `VerificationTrigger` seam (spec 04 fills it). Service
   + route unit tests; live store integration (atomic tx + UNIQUE rollback) ran green vs
   Docker Postgres. All gates green.
+- **06 · Web shell & auth UI** — shipped 2026-06-18. `apps/web` is now a themed,
+  authenticated SPA: design system ported to typed `ui.tsx` (`ThemeProvider` owns theme,
+  pre-paint script, app-owned CSS imported once, `AppBackground` at root); React Router
+  with a PUBLIC auth zone + a PROTECTED glass shell (glass sidebar/topbar, account menu),
+  a `/auth/me`-backed guard (pending→splash, 200→shell, 401→`/login?from=`) — the
+  httpOnly cookie is unreadable so the server is the single source of truth. One
+  TanStack `QueryClient` + a cookie fetch wrapper (`credentials:'include'`, base from
+  `VITE_API_URL`, global 401→logout) that NEVER sends an `org_id` (tested). Five auth
+  pages (signup/login/verify-email/forgot/reset) validate the SHARED Zod contracts, map
+  400s, and use non-enumerating copy. Guard test (invariant 6): no data/reading node
+  under `.glass`. 24 RTL tests; all gates green. Not Gate-1 flagged. NOTE: forgot/reset
+  backend endpoints are a deferred slice (UI built against mocks — see DECISIONS).
 - **05 · Login, JWT & sessions** — shipped 2026-06-18. `POST /auth/login` (argon2
   verify + `email_verified` gate, timing-uniform via a dummy-hash verify on unknown
   emails, per-email rate limit) issues a 15-min HS256 access JWT (`jose`, alg pinned)
