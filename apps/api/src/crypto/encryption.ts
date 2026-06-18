@@ -39,10 +39,13 @@ export function createEncryptionService(keyring: Keyring): EncryptionService {
   function encrypt(plaintext: string): Buffer {
     const key = keyring.get(writeKeyId);
     const iv = randomBytes(IV_LENGTH);
+    const header = Buffer.from([VERSION, writeKeyId]);
     const cipher = createCipheriv('aes-256-gcm', key, iv);
+    // Bind the version|key_id header as AAD so the auth tag covers it — a swapped `key_id`
+    // (e.g. a rotation-era downgrade) then fails the tag instead of being silently honored.
+    cipher.setAAD(header);
     const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
     const authTag = cipher.getAuthTag();
-    const header = Buffer.from([VERSION, writeKeyId]);
     return Buffer.concat([header, iv, authTag, ciphertext]);
   }
 
@@ -62,6 +65,9 @@ export function createEncryptionService(keyring: Keyring): EncryptionService {
     if (!key) throw new CryptoError('UNKNOWN_KEY_ID');
 
     const decipher = createDecipheriv('aes-256-gcm', key, iv);
+    // Must match the AAD bound at encrypt time (the version|key_id header) — a tampered header
+    // fails the tag here.
+    decipher.setAAD(blob.subarray(0, 2));
     decipher.setAuthTag(authTag);
     try {
       return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');

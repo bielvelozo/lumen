@@ -479,6 +479,34 @@ errors are caught + sanitized to a code and never thrown out with rows). Enforce
 the request-body wholesale drop (the main row ingress). `sendDefaultPii:false` keeps stack-frame
 local vars off.
 
+### 02-secrets | Gate-1 security-review result
+2026-06-18 — Gate 1 (security-review-before-merge) re-run on the crypto module at final
+verification. Module SOUND, all five points UPHELD: AES-256-GCM with a FRESH CSPRNG IV per
+encrypt + tag verified on decrypt (tamper/truncation throws, never partial plaintext); exact
+blob layout parsing (no off-by-one); 32-byte env master key validated at boot + in the keyring,
+in-memory only, never logged/persisted/serialized; disposable tokens are 256-bit CSPRNG stored
+SHA-256-HASHED only (no raw token persisted), constant-time verify; passwords argon2id at OWASP
+baseline. One LOW (F1): the GCM tag did not cover the `version|key_id` header (no AAD) — NOT
+exploitable into plaintext in v1's single-key mode, but a key_id-swap surface once master-key
+rotation (spec 16) is used. RESOLVED: `setAAD(version|key_id)` bound on encrypt + decrypt (29
+crypto tests green; pre-launch, so no persisted blob format break). F2/F3 informational, no action.
+
+### 09-exposure | Gate-2 CRITICAL data-access review result
+2026-06-18 — Gate 2 (data-access-review-gates) re-confirmed at final verification. All four
+checks UPHELD, no findings at the bar: (i) introspection is read-only over `information_schema`,
+parameterized by the connection's OWN `TABLE_SCHEMA = ?` (trusted db_connections row, not client
+input), reads ONLY schema metadata — never a customer row; (ii) the exposure SAVE takes NAMES
+only (`.strict()` rejects any column/type/SQL field); the backend re-introspects + DERIVES
+columns/FKs; a chosen name is validated by MEMBERSHIP and only ever a Map key / bound `text`
+value — never a SQL identifier (an injection name fails membership → 422, never reaches MySQL/
+Postgres); (iii) org_id + the connection row + every exposure read/write resolved from the JWT
+org only (`getByOrg(orgId)`; no client connection id exists in the contract; double-scoped by
+org+connection); (iv) a relationship persists only if BOTH endpoints are in the same connection's
+chosen set (else 422), whole-set replace is atomic (one tx) + idempotent (cascade un-expose).
+Break attempts (expose-nonexistent / inject-via-name / cross-tenant read / orphan relationship /
+read row data) all blocked. Two informational notes (benign TOCTOU; composite-FK skip is a
+documented fail-closed v1 limitation).
+
 ### 16-deploy | managed Postgres provider
 2026-06-18 — `[CONFIRM-WITH-HUMAN]` Default lean: **Neon** (of Neon/Supabase); use the
 direct (non-pooled) URL for the migration step and a pooled URL for the app if needed;
