@@ -1,0 +1,1 @@
+ALTER TABLE "db_connections" ADD CONSTRAINT "uq_dbconn_org" UNIQUE("org_id");

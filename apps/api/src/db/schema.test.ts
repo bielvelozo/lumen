@@ -102,11 +102,13 @@ describe('schema: FK delete actions match db/schema.sql', () => {
   });
 });
 
-describe('schema: v1 single-connection unique indexes stay absent', () => {
-  it('db_connections has no org-level unique constraint', () => {
-    expect(getTableConfig(dbConnections).uniqueConstraints).toHaveLength(0);
+describe('schema: v1 single-connection uniqueness', () => {
+  it('db_connections has the uq_dbconn_org unique on org_id (one connection per org — spec 08)', () => {
+    const uniques = getTableConfig(dbConnections).uniqueConstraints;
+    expect(uniques).toHaveLength(1);
+    expect(uniques[0]?.columns.map((c) => c.name)).toEqual(['org_id']);
   });
-  it('ai_connections has no org-level unique constraint', () => {
+  it('ai_connections still has no org-level unique constraint (spec 11 enables its own)', () => {
     expect(getTableConfig(aiConnections).uniqueConstraints).toHaveLength(0);
   });
   it('exposed_tables keeps its composite unique', () => {

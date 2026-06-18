@@ -143,7 +143,12 @@ export const dbConnections = pgTable(
     createdAt: tz('created_at').notNull().defaultNow(),
     updatedAt: tz('updated_at').notNull().defaultNow(),
   },
-  (table) => [index('idx_dbconn_org').on(table.orgId)],
+  (table) => [
+    index('idx_dbconn_org').on(table.orgId),
+    // v1 = exactly one connection per org. Enabled by spec 08 so create-or-update is an
+    // atomic upsert keyed by org_id (the constraint is the race backstop).
+    unique('uq_dbconn_org').on(table.orgId),
+  ],
 );
 
 // ---------------------------------------------------------------------------
