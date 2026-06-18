@@ -27,7 +27,7 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
 
 ### Phase 1 — Base & Auth
 - **Shipped** — [[../specs/03-signup-and-org/spec|03 · Signup & org creation]] — signup creates org + owner user; password hashed; validation. _Deps: 01, 02._
-- **In progress** — [[../specs/04-email-verification/spec|04 · Email verification]] — Resend; hashed single-use expiring token; verify + resend endpoints. _Deps: 03._
+- **Shipped** — [[../specs/04-email-verification/spec|04 · Email verification]] — Resend; hashed single-use expiring token; verify + resend endpoints. _Deps: 03._
 - **Planned** — [[../specs/05-login-jwt-sessions/spec|05 · Login, JWT & sessions]] — login; JWT in httpOnly/Secure/SameSite=None cookie; refresh-token rotation (hashed, revocable); logout; auth middleware that derives `org_id` from the JWT (anti-IDOR foundation). _Deps: 02, 03._
 - **Planned** — [[../specs/06-web-shell-and-auth-ui/spec|06 · Web shell & auth UI]] — port the design system into `apps/web`; AppBackground, theme toggle, router, TanStack Query, auth pages, protected-route guard. _Deps: 00, 03, 04, 05._
 
@@ -77,3 +77,15 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
   best-effort post-commit via a `VerificationTrigger` seam (spec 04 fills it). Service
   + route unit tests; live store integration (atomic tx + UNIQUE rollback) ran green vs
   Docker Postgres. All gates green.
+- **04 · Email verification** — shipped 2026-06-18. Issue → email → consume lifecycle
+  over `email_verification_tokens`: spec-02 `generateToken` (32-byte CSPRNG) with only
+  the SHA-256 hash persisted (raw lives solely in the link — guard test). `POST
+  /auth/verify-email` consumes via one atomic conditional `UPDATE ... WHERE used_at IS
+  NULL AND expires_at>now RETURNING user_id` (no TOCTOU) + flips the user;
+  verified/already_verified/invalid, no 500. `POST /auth/resend-verification` is
+  anti-enumeration (identical generic 202 for existing/verified/unknown; email only for
+  existing-unverified) + per-email rate limit; most-recent-wins reissue. Resend behind
+  an `EmailSender` port (no-op when no key, never logs the link/token). The verification
+  service fulfills spec-03's `VerificationTrigger` seam (real issue-on-signup now).
+  Service/route unit tests + live store integration ran green vs Docker Postgres.
+  All gates green.

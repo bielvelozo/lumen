@@ -1,12 +1,12 @@
 ---
-status: draft
+status: shipped
 feature: email-verification
 created: 2026-06-17
-shipped: null
+shipped: 2026-06-18
 ---
 # Email Verification — Spec
 
-**Status:** Draft
+**Status:** Shipped
 **Scope:** Flow 1's email-verification slice — issue a single-use, hashed, expiring verification token on signup and on resend, email the **raw** token as a link via Resend, and verify it through an endpoint that hashes the link token, checks expiry/single-use, and flips `users.email_verified` to true. Built on the token helpers from `[[../02-secrets-and-tokens/spec|02]]` and called from `[[../03-signup-and-org/spec|03]]`.
 
 ## Context

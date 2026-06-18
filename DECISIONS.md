@@ -109,6 +109,40 @@ spam/enumeration vector. The endpoint is unauthenticated and mints `org_id`
 server-side (never accepts one — `.strict()` rejects unknown fields). Revisit when a
 rate-limit/middleware spec exists (and at spec 16 hardening).
 
+### 04-verify | token lifetime
+2026-06-18 — Default taken: **24h** (`expires_at = issue + 24h`). Confirm with
+product (shorter tightens security, adds resend friction). Not security-weakening.
+
+### 04-verify | resend rate-limit policy
+2026-06-18 — Default taken: **per-email <= 3 / hour**, in-memory fixed-window
+(`createInMemoryRateLimiter`). Per-process state — correct for single-instance v1; a
+shared/distributed store (Redis) and a per-IP ceiling are deferred to deploy
+hardening (spec 16). Over-limit returns the SAME generic response (no enumeration).
+
+### 04-verify | multiple live tokens on reissue
+2026-06-18 — Default taken: **most-recent-wins** — `issue` marks the user's prior
+unused tokens `used_at=now()` in the same tx before inserting the new one, so an old
+link cannot also verify. Verified by the live integration test.
+
+### 04-verify | email template ownership & localization
+2026-06-18 — Default taken: **Portuguese-first**, "Lumen" identity; template module
+in `apps/api` (`verification-template.ts`). A design pass / shared template can come
+with spec 06. Not security-sensitive.
+
+### 04-verify | verify-link target + post-verify destination
+2026-06-18 — Default taken: the email link points to the **SPA route**
+`{APP_URL}/verify-email?token=...` (spec 06), which calls `POST /auth/verify-email`.
+Post-verify destination = **redirect to login** (spec 05/06 own the redirect; no
+auto-login here). Anti-IDOR: the verify endpoint accepts only the opaque token; the
+user is derived from the hash-matched row. Recorded; coordinate UX in spec 06.
+
+### 04-verify | resend timing uniformity (residual enumeration note)
+2026-06-18 — The resend response shape/status is identical for existing-unverified,
+already-verified, and unknown emails (parity test). Residual: the existing-unverified
+path does extra work (issue + send) so latency is not perfectly constant. Accepted as
+best-effort per the spec; a constant-time wrapper can be added with the rate-limit
+hardening at spec 16. Not a new secret decision.
+
 ### 07-08-consent | consent vs `encrypted_password NOT NULL`
 2026-06-17 — `[CONFIRM-WITH-HUMAN]` Default: **Option B** — a lightweight
 `db_connection_consents` table (`org_id`, `consent_version`, `accepted_at`,
@@ -156,6 +190,21 @@ GREEN on 2026-06-18 against local Docker Postgres via
 1 owner with an argon2 `password_hash` (not raw), and duplicate-email -> `duplicate`
 with the org insert rolled back, zero new rows). Re-confirm in the §7(2) final live
 gate.
+
+LIVE-VERIFICATION-PENDING: apps/api verification-store integration test
+(`src/auth/verification.store.integration.test.ts` -> "live: verification store") is
+gated on `DATABASE_URL`. SKIPS in the default `pnpm test`. Run GREEN on 2026-06-18
+against local Docker Postgres (throwaway `lumen_verification_test` DB: migrate, then
+assert issue persists ONLY the hash (raw never in the row), consume flips the user +
+`used_at` atomically with benign replay, unknown/expired -> invalid, and reissue
+invalidates the prior unused token). Re-confirm in the §7(2) final live gate.
+
+LIVE-VERIFICATION-PENDING: real Resend email send (spec 04) is gated on
+`RESEND_API_KEY` + a verified sender domain (a human/DNS step, finalized at spec 16).
+With no key, `makeEmailSender` binds the no-op `consoleEmailSender` (logs the
+recipient only, never the link/token) and all unit tests use a fake sender (no real
+email in CI). The real `resendEmailSender` (fetch -> api.resend.com) is implemented
+but UNVERIFIED against the live API until a key + verified domain exist.
 
 ---
 
