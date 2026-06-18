@@ -8,7 +8,7 @@ Deliberate code style choices that all code in Business Assistant must follow. T
 
 ## Code style
 
-_No conventions yet. Add the first one when a team decision is made._
+- [[../conventions/locked-stack-decisions|Locked stack: Fastify · pnpm + Turborepo · Vitest]] — the framework / package-manager / test-runner forks the constitution left open are now decided; build on Fastify, a pnpm+Turborepo monorepo (`apps/web`, `apps/api`, `packages/shared`), and Vitest.
 
 ## UI / design
 

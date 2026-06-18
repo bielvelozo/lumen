@@ -1,0 +1,96 @@
+---
+status: draft
+feature: db-connection-create-and-test
+created: 2026-06-17
+shipped: null
+---
+# DB Connection — Create & Test — Spec
+
+**Status:** Draft
+**Scope:** The second half of Flow 2 — an authenticated endpoint that creates/updates the org's single `db_connections` row from the collected MySQL config, **encrypts the password** into `encrypted_password`, runs a **live read-only connection test** against the customer's MySQL, and drives the `pending → active | failed` state with a sanitized `last_error` and `last_tested_at`; plus a re-test of an existing connection.
+
+## Context
+
+Flow 2 splits in two. Consent + the read-only onboarding script + collecting the connection form is `[[../07-db-connection-consent-and-script/spec|07]]`. This spec takes the collected values and does the two things that turn a form into a working, trusted connection: it **persists** the row (non-secret config in the clear, the password encrypted at rest) and it **proves the connection actually works** by opening a live MySQL session and running a harmless read.
+
+This is the first spec where the application reaches *out* of its own boundary into a customer-owned database, and the first that writes a real secret to `db_connections`. Three constitutional invariants converge here (`[[../../constitution|Constitution]]` → *Architecture principles* 1, 2, 5):
+
+- **Invariant 1 — tenant isolation / anti-IDOR.** The connection belongs to the org. The `org_id` always comes from the JWT, never from a body/path id. There is no "connection id" the client can hand us to act on another org's row.
+- **Invariant 2 — secrets encrypted at rest.** The password is encrypted via the module from `[[../02-secrets-and-tokens/spec|02]]` into the `bytea` column `encrypted_password`. Postgres never sees plaintext; the decryption key lives outside the DB. We decrypt only in-process, only for the duration of a test, and never log or return the plaintext.
+- **Invariant 5 — read-only, never root.** The credential the customer pasted was minted by the onboarding script as a least-privilege read-only user (`[[../07-db-connection-consent-and-script/spec|07]]`). The test confirms it can read and, where MySQL makes it detectable, that it is *not* over-privileged.
+
+Connection state is first-class in the schema (`status`, `last_tested_at`, `last_error`) — never inferred. This spec is the writer of that state. It depends on `[[../02-secrets-and-tokens/spec|02]]` (encrypt/decrypt) and `[[../07-db-connection-consent-and-script/spec|07]]` (consent row + collected config), and it is a hard prerequisite for `[[../09-introspection-and-exposure/spec|09]]` (which only runs once a connection is `active`). Because the diff touches secret encryption, a live external credential, and the connection flow, it must pass `[[../../rules/security-review-before-merge|security-review-before-merge]]` before merge.
+
+## Problem Statement
+
+After consent, the org has a set of MySQL coordinates (`host`, `port`, `database`, `username`, `password`, `ssl`) that may or may not actually work and may or may not be safe. We need a backend endpoint that: scopes everything to the JWT's `org_id`; stores the non-secret config and the **encrypted** password in the org's one `db_connections` row (insert or update); then opens a **live** connection to that MySQL, runs a harmless read (`SELECT 1`), and — where MySQL exposes it — checks the credential is read-only rather than a writer/admin. On success the row goes `active` with a fresh `last_tested_at`; on any failure it goes `failed` with a `last_error` that has been **mapped to a safe category** (auth failed, host unreachable, SSL error, database not found, permission/timeout) — never the raw driver/server string, which can leak hostnames, schema names, or data. The same machinery must support re-testing an existing connection without re-collecting the password.
+
+## Non-Goals
+
+- **Schema introspection and exposed tables/relationships.** Listing the customer's tables/columns/FKs and letting the owner pick what the assistant may see is `[[../09-introspection-and-exposure/spec|09]]`. This spec stops at "the connection is `active`"; it reads nothing from the customer's *data* schema beyond what a `SELECT 1` and privilege check require.
+- **The query functions.** Parameterized read-only query functions the model chooses among are `[[../12-query-function-registry/spec|12]]` and the orchestrator `[[../13-chat-orchestrator/spec|13]]`. No business queries run here.
+- **Frontend.** The Connect-DB UI (forms, status badges, error display, re-test button) is `[[../10-connect-db-ui/spec|10]]`. This spec is the API + service only.
+- **Consent, the onboarding script, and form collection.** Owned by `[[../07-db-connection-consent-and-script/spec|07]]`. This spec assumes the consent columns are already set on (or supplied with) the row and does not generate the script.
+- **The crypto primitives.** `encrypt`/`decrypt` are built and tested in `[[../02-secrets-and-tokens/spec|02]]`; here we only *call* them.
+- **Multiple connections / non-MySQL engines.** v1 is one connection per org and `engine = 'mysql'` only (`[[../../constitution|Constitution]]` → *Scope guardrails*). No connection pooling for live chat traffic — that is a later concern; the test opens and closes its own short-lived connection.
+- **Key rotation, re-encryption, or password rotation jobs.** Out of scope (see `[[../02-secrets-and-tokens/spec|02]]`).
+
+## Constraints
+
+- **Endpoint shape.** A small set of authenticated routes under the connections resource — e.g. `PUT /api/db-connection` (create-or-update + test in one call) and `POST /api/db-connection/test` (re-test the existing row). Exact verbs/paths are an open question; the behavior below is what matters. All require a valid session JWT; unauthenticated → `401`.
+- **`org_id` from JWT only.** The org is resolved from the verified JWT on every call. The request body carries config, never an `org_id` or a `db_connections.id`. The service looks up *the org's* row (`WHERE org_id = $jwtOrg`); there is no code path that accepts a client-supplied connection id to select the row. This is the anti-IDOR guarantee, enforced in the data layer.
+- **One row per org (upsert).** v1 allows exactly one `db_connections` row per org. Create-or-update is an upsert keyed by `org_id` (the schema's optional `uq_dbconn_org` unique index should be enabled by `[[../01-app-db-drizzle/spec|01]]`/`[[../09-introspection-and-exposure/spec|09]]`; this spec assumes/relies on uniqueness). Re-submitting overwrites the config; if a new password is provided it is re-encrypted, otherwise the existing `encrypted_password` is kept (re-test must work without re-pasting the password).
+- **Non-secret config stored in the clear.** `engine` (forced to `'mysql'`), `host`, `port`, `database_name`, `username`, `ssl_enabled` are plain columns. `username` is explicitly *not* a secret (it is the read-only user). Validate inputs (host non-empty, port in `1..65535`, names non-empty) with a Zod schema in `packages/shared` before any DB or network work.
+- **Password encrypted via `[[../02-secrets-and-tokens/spec|02]]`.** The pasted password is passed through `encrypt(...)` and the returned `Buffer` is written to `encrypted_password` (`bytea`). The plaintext exists only transiently in memory: long enough to encrypt for storage and to open the test connection. It is never logged, never put in an error, never returned in a response, and never written to any column but the encrypted `bytea`. On re-test, the password is obtained by `decrypt(encrypted_password)` in-process.
+- **Live test = open + harmless read.** Using the stored config + decrypted password, open a real MySQL connection (mysql2 driver) and run a harmless, side-effect-free read — `SELECT 1` (and, for the privilege check, `SHOW GRANTS FOR CURRENT_USER()`). The test connection is short-lived: opened for the test, closed immediately after (try/finally), independent of any future chat-time pooling. A **connect + query timeout** (e.g. ~5s) bounds a hung/unreachable host; exceeding it is a `failed`, not a hang.
+- **SSL.** When `ssl_enabled` is true, attempt the connection with TLS; a TLS negotiation/cert failure maps to the `ssl_error` category. v1 SSL strictness (verify-CA vs. permissive) is an open question; do not silently downgrade a requested TLS connection to plaintext.
+- **Read-only / least-privilege verification (best-effort).** Where MySQL makes it detectable, confirm the credential is read-only: parse `SHOW GRANTS FOR CURRENT_USER()` and flag if the user holds write/admin privileges (`INSERT`, `UPDATE`, `DELETE`, `DROP`, `ALL PRIVILEGES`, `GRANT OPTION`, `SUPER`, etc.) or is effectively root. The flow itself never needs writes, so a writer credential is at minimum a warning surfaced to the owner; treat an over-privileged or root-like credential per the (open-question) policy — warn-and-proceed vs. block. This is defense in depth on top of invariant 5; the onboarding script is the primary guarantee.
+- **State machine, written explicitly.** New rows start `pending`. A successful test sets `status = 'active'`, `last_tested_at = now()`, `last_error = NULL`. A failed test sets `status = 'failed'`, `last_tested_at = now()`, and `last_error` = a **sanitized category code/message**. `updated_at` is bumped by the app/ORM. The response returns the resulting public state (status, `last_tested_at`, sanitized error, any read-only warning) — never config secrets.
+- **Error sanitization (hard rule).** Raw driver/server errors are mapped to a closed set of safe categories before they touch `last_error`, the API response, or logs: `auth_failed`, `host_unreachable`, `connection_refused`, `timeout`, `ssl_error`, `database_not_found`, `access_denied`, `unknown`. The raw error may be inspected in-process to choose a category but must not be echoed, because MySQL error text can contain hostnames, schema/table names, or fragments of data. Full raw errors may go to Sentry *server-side only* if scrubbed of credentials (`[[../15-observability-sentry/spec|15]]`), never to the DB column or the client.
+- **No secret in logs, ever.** The password (encrypted or decrypted), the master key, and the full connection string never reach logs, error messages, responses, or Sentry. This extends the same rule from `[[../02-secrets-and-tokens/spec|02]]` to the network layer.
+- **Tested with Vitest.** Unit-test the error-category mapper and the grants parser as pure functions; integration-test create→encrypt→test→`active`, the failure→`failed`+sanitized-error path, and re-test-without-password against the local MySQL container from `[[../00-monorepo-scaffold/spec|00]]`. No test commits real customer credentials or a real key.
+
+## User Stories / Scenarios
+
+1. **Happy path — create and activate.** An authenticated owner submits valid MySQL config + the read-only password. The service upserts the org's row (config in the clear, password encrypted), opens a live MySQL connection, runs `SELECT 1`, confirms read-only via grants, then sets `status = 'active'`, `last_tested_at = now()`, `last_error = NULL`. The response reports `active`.
+2. **Wrong password / bad user.** The credential is rejected by MySQL (`ER_ACCESS_DENIED_ERROR`). The row is saved (so the config persists) but ends `failed` with `last_error = auth_failed`; the response shows a friendly "authentication failed" message — never the raw server string, never the attempted username/password.
+3. **Host unreachable / wrong port.** Connecting times out or is refused. The row ends `failed` with `host_unreachable`/`connection_refused`/`timeout`; the call returns within the timeout budget rather than hanging.
+4. **Database does not exist.** Credentials are valid but `database_name` is wrong (`ER_BAD_DB_ERROR`). The row ends `failed` with `database_not_found`.
+5. **SSL mismatch.** `ssl_enabled = true` but the server cannot complete TLS. The row ends `failed` with `ssl_error`, and the connection is not silently downgraded to plaintext.
+6. **Over-privileged credential.** The connection works and `SELECT 1` succeeds, but `SHOW GRANTS` reveals write/admin privileges. The connection is reported with a **read-only warning** (and handled per the chosen privilege policy); the constitutional expectation is least privilege, and the owner is told their credential is broader than needed.
+7. **Re-test an existing connection.** An owner with a saved (`failed` or `active`) connection triggers a re-test without re-entering the password. The service decrypts `encrypted_password`, re-runs the live test, and updates `status`/`last_tested_at`/`last_error` accordingly.
+8. **Cross-tenant attempt (anti-IDOR).** A request tries to influence another org's connection by smuggling an `org_id` or connection `id` in the body. The service ignores client-supplied ids entirely, operates only on the JWT org's row, and there is no path to read or mutate another tenant's connection.
+9. **Unauthenticated / unverified.** No/invalid session JWT → `401`; no DB or network work happens.
+
+## Success Criteria
+
+- An authenticated create-or-update endpoint upserts exactly one `db_connections` row per org, scoped by the JWT `org_id`, storing `engine='mysql'`, `host`, `port`, `database_name`, `username`, `ssl_enabled` in the clear and the password **only** as an `encrypt(...)` blob in `encrypted_password`; the plaintext password never appears in any other column, log, response, or error.
+- The live test opens a real MySQL connection with the stored config + decrypted password, runs `SELECT 1`, and closes the connection in a `finally`; a bounded connect/query timeout turns an unreachable host into a `failed`, not a hang.
+- On success the row is `status='active'`, `last_tested_at` set, `last_error=NULL`; on failure it is `status='failed'`, `last_tested_at` set, `last_error` a value from the closed safe-category set — and the raw driver/server message is never stored, returned, or logged unscrubbed.
+- The read-only/least-privilege check runs where detectable (`SHOW GRANTS FOR CURRENT_USER()`), and a write/admin/root-like credential is surfaced as a warning (and handled per the chosen policy) rather than silently accepted as "fine".
+- Re-test works on an existing row without re-supplying the password (password recovered via `decrypt`), and correctly updates the state triple.
+- No request can act on another org's connection: client-supplied `org_id`/connection-`id` are ignored; the row is always selected by the JWT org; an IDOR-style attempt is a no-op against the attacker's intent. Verified by test.
+- The error-category mapper and grants parser have unit tests; the create/test/re-test paths have integration tests against the local MySQL container; all green. The change passes `/security-review` per `[[../../rules/security-review-before-merge|security-review-before-merge]]`.
+
+## Risks and Mitigations
+
+| Risk | Mitigation |
+|---|---|
+| Raw MySQL error leaked into `last_error`/response/logs exposing hostnames, schema names, or data fragments | Map every driver/server error to a closed safe-category set before it touches the column, response, or logs; inspect the raw error only in-process to pick a category; scrubbed raw errors may go to Sentry server-side only (`[[../15-observability-sentry/spec|15]]`) |
+| Decrypted password lingers, gets logged, or is returned in a response | Decrypt only in-process for the test's lifetime; never assign it to a returned object or log line; rely on the no-secret-in-logs rule from `[[../02-secrets-and-tokens/spec|02]]`; security review per `[[../../rules/security-review-before-merge|security-review-before-merge]]` |
+| IDOR — client supplies another org's `org_id`/connection id and mutates its connection | Resolve `org_id` from the JWT only; never read an org/connection id from the body/path for row selection; one-row-per-org upsert keyed by JWT org; explicit cross-tenant test |
+| A hung or unreachable host blocks the request thread / exhausts resources | Bounded connect + query timeout on the test connection; short-lived connection opened and closed in try/finally; timeout maps to a `failed` category, not a hang |
+| Requested TLS silently downgraded to plaintext, giving false sense of security | Honor `ssl_enabled`: attempt TLS and fail to `ssl_error` rather than downgrade; do not enable a permissive fallback that hides cert problems (strictness is an open question, resolved before merge) |
+| Over-privileged or root credential slips through because MySQL grant detection is incomplete | Treat the grants check as defense-in-depth atop the onboarding script's read-only guarantee (`[[../07-db-connection-consent-and-script/spec|07]]`, invariant 5); parse `SHOW GRANTS` for write/admin/root markers and warn/block per policy |
+| Upsert race or duplicate rows if two requests arrive together | Enforce one-row-per-org with the `uq_dbconn_org` unique index and an atomic upsert keyed by `org_id`; let the constraint be the backstop |
+| Test pollutes or partial-writes the customer DB | Only side-effect-free reads (`SELECT 1`, `SHOW GRANTS`); never a statement that writes; read-only credential makes writes impossible by construction |
+| Encryption format / key mismatch makes a stored password undecryptable on re-test | Reuse the exact `encrypt`/`decrypt` module and keyring from `[[../02-secrets-and-tokens/spec|02]]` (self-describing `version`/`key_id` blob); never hand-roll crypto here; round-trip covered by `02`'s tests and an integration re-test here |
+
+## Open Questions
+
+- [NEEDS CLARIFICATION: exact route shape and verbs — `PUT /api/db-connection` (create-or-update+test) plus `POST /api/db-connection/test` (re-test), vs. a single endpoint with an action field] — default to the two-route shape above; confirm against the Connect-DB UI in `[[../10-connect-db-ui/spec|10]]`.
+- [NEEDS CLARIFICATION: whether create-and-test is one synchronous call or a create step followed by a separate test step] — default to synchronous (persist, then test, then return final state) for v1's single-connection simplicity; revisit only if the test latency hurts UX.
+- [NEEDS CLARIFICATION: privilege policy for an over-privileged/root credential — warn-and-proceed (still `active` with a warning flag) vs. hard-block (`failed`)] — lean warn-and-proceed in v1 (the onboarding script is the real guard), but surface it prominently; lock with the UI in `[[../10-connect-db-ui/spec|10]]`.
+- [NEEDS CLARIFICATION: TLS strictness when `ssl_enabled` — verify-CA/verify-identity vs. accept-any-cert encrypted] — default to encrypted-with-verification where feasible and never downgrade to plaintext; finalize the cert-handling story (and any CA-bundle config) before merge given the security-review gate.
+- [NEEDS CLARIFICATION: exact connect/query timeout budget and whether to retry transient connect failures] — default ~5s, no automatic retry in v1 (the owner can re-test); tune against real customer latencies later.
+- [NEEDS CLARIFICATION: whether to enable the `uq_dbconn_org` unique index here or assume `[[../01-app-db-drizzle/spec|01]]`/`[[../09-introspection-and-exposure/spec|09]]` already enabled it] — this spec relies on one-row-per-org uniqueness; ensure the index is live before merge regardless of which spec adds it.

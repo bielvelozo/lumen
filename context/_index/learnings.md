@@ -18,4 +18,4 @@ _No learnings yet. Add the first one when you discover something non-obvious._
 
 ## `#gotcha` — Things that tripped us up
 
-_No gotchas captured yet. Add the first one when you hit a repeatable surprise._
+- [[../learnings/db-connection-consent-before-credential-tension|`db_connections` can't hold consent before a credential exists]] — consent and `encrypted_password NOT NULL` share one row, so "save consent first" needs a modeling decision (affects specs 07/08/10).
