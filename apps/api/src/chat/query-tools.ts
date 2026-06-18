@@ -73,20 +73,25 @@ export function buildQueryTools(ctx: QueryToolContext): ExecutableTool[] {
       const durationMs = now() - started;
 
       const ok = result.outcome === 'rows';
-      await ctx.logStore.insert({
-        orgId: ctx.orgId,
-        userId: ctx.userId,
-        sessionId: ctx.sessionId,
-        messageId: null,
-        functionName: spec.name,
-        params: sanitizeParams(rawInput),
-        status: ok ? 'success' : 'failed',
-        durationMs,
-        provider: 'claude',
-        model: ctx.model,
-        // The refusal/validation CODE is model-safe; never a raw driver/SQL string.
-        errorMessage: ok ? null : result.outcome === 'invalid' ? 'invalid_params' : result.code,
-      });
+      // Best-effort audit (Gate-2 review): a logging-store hiccup must NOT fail a successful
+      // data read or escape as an error. `message_id` stays null — the assistant message is
+      // created only after the loop; the row is still scoped by org/session/function/time.
+      await ctx.logStore
+        .insert({
+          orgId: ctx.orgId,
+          userId: ctx.userId,
+          sessionId: ctx.sessionId,
+          messageId: null,
+          functionName: spec.name,
+          params: sanitizeParams(rawInput),
+          status: ok ? 'success' : 'failed',
+          durationMs,
+          provider: 'claude',
+          model: ctx.model,
+          // The refusal/validation CODE is model-safe; never a raw driver/SQL string.
+          errorMessage: ok ? null : result.outcome === 'invalid' ? 'invalid_params' : result.code,
+        })
+        .catch(() => undefined);
 
       if (result.outcome === 'rows') return { ok: true, rows: result.rows };
       const error = result.outcome === 'invalid' ? 'invalid_params' : result.code;

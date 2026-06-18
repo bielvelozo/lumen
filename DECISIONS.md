@@ -394,6 +394,40 @@ bound-as-strings (intentional v1) and the read-only backstop (already triple-lay
 GUARD TEST present: injection column → `column_not_exposed` refusal, builder/runner never reached
 (unit + live, table left intact).
 
+### 13-chat | open-question defaults
+2026-06-18 — Defaults taken (all spec-13 open questions). (1) Streaming: the orchestrator owns
+a simple SSE wire format it controls — events `text-delta`* then exactly ONE `done`|`error`
+(the contract spec 14 consumes); the real model adapter bridges the AI SDK `streamText` into
+`onTextDelta`. (2) History: send the session's recent messages bounded by a turn cap (last 10),
+oldest-first, incl. the just-saved user message; no summarization in v1. (3) Session create:
+explicit `POST /chat/sessions` + the messages route on an owned `:sessionId`. Implicit
+create-on-first-message is a thin future addition (UI can create-then-send); recorded as deferred,
+not blocking. (4) Title: truncate the first user message to 60 chars (no extra model call),
+set once (COALESCE). (5) maxSteps=5 tool-call round-trips; query timeout from spec 12's runner
+(~10s). All recorded; none security-flagged beyond the Gate-2 invariants.
+
+### 13-chat | Gate-2 CRITICAL data-access review result
+2026-06-18 — Gate 2 (data-access-review-gates) run on the spec-13 diff with mechanical
+re-confirmation. All four checks UPHELD: (i) NO model string reaches SQL — the model only picks
+a tool name + params, every tool `execute` routes through the spec-12 guarded executor (Zod +
+allow-list membership + bound read-only SELECT); no free-SQL path/eval/sql.raw anywhere in the
+chat code; (ii) EVERY chat-store + function-log-store read/write is org_id-scoped (sessions,
+messages, recentMessages, logs) — a foreign `:sessionId` causes no cross-tenant read; (iii)
+org/user ONLY from `getAuth` (JWT); body schema `.strict()` rejects a smuggled org/session id;
+`:sessionId` used only after an ownership check → 404 (no existence leak); (iv) `function_call_logs.
+params` carries type tags only (no raw values), `error_message` a closed code; the decrypted
+Claude key + MySQL password never enter messages/logs/the stream; the SSE error path emits a
+sanitized code+message, never a stack trace. No HIGH/MEDIUM. Three LOW: (L3) a logging-store
+hiccup could fail a successful read — RESOLVED (best-effort `.catch` on the log insert; a log
+failure no longer fails the turn). (L1) `function_call_logs.message_id` is null (the assistant
+message is created after the tool loop) — ACCEPTED: the row is still scoped by org/session/
+function/time; `message_id` is a nullable FK by schema design. (L2) a mid-stream model failure
+emits a terminal `error` after some `text-delta`s — wire-contract-conformant; spec 14 discards
+partial text on `error` (noted as a consumer contract). GUARD TESTS present: no-model-string-in-SQL
+(query-tools injection → refusal, runner never called; + spec-12 live), cross-tenant `:sessionId`
+→ 404 (route test), secret/log-scan (service test: key never in messages; query-tools: no
+secret/host/value in logs).
+
 ### 16-deploy | managed Postgres provider
 2026-06-17 — `[CONFIRM-WITH-HUMAN]` Default: pick one of **Neon / Supabase**; use
 the direct (non-pooled) URL for the migration step and a pooled URL for the app if
