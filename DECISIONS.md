@@ -314,6 +314,34 @@ any config change re-enters the test flow; the password field stays write-only a
 on edit (08 keeps the stored secret). Copy is pt-BR inline. The relationship
 both-endpoints client guard is UX only (09's server validation stays authoritative).
 
+### 11-ai-connection | curated Claude model list (verified ids)
+2026-06-18 — `[CONFIRM-WITH-HUMAN]` Verified the exact model ids against the project
+`claude-api` skill/reference (shared/models.md, cached 2026-06-04) — NOT from memory.
+Curated selectable list in `packages/shared` (single source of truth), EXACT alias
+strings, NO date suffixes: `claude-opus-4-8` (default), `claude-sonnet-4-6`,
+`claude-haiku-4-5`. Took the spec's open-question default lean (small + current): Opus
+4.8 / Sonnet 4.6 / Haiku 4.5 — `claude-opus-4-7` is intentionally NOT offered (kept
+short). A wrong id is invisible until a live call, so flagged for human confirmation.
+
+### 11-ai-connection | failure mapping + no-store-on-failure + re-key/re-validate
+2026-06-18 — Defaults taken. Sanitized closed-set mapping (per claude-api
+shared/error-codes.md): 401/403 -> `invalid_key`; 404 -> `model_unavailable`; 429 ->
+`rate_limited`; timeout/DNS/5xx/529 -> `network`; unmapped -> `unknown`. Raw provider
+text is NEVER persisted or returned. Persistence: a NEW key is encrypted+stored ONLY on
+successful validation (`encrypted_api_key NOT NULL` + "don't store a dead key" => a
+first-time failure persists NOTHING; the failed category is returned in the mutation
+response only). On an EXISTING row a failed re-key NEVER overwrites the stored
+ciphertext (a typo must not disconnect a working assistant). Re-validating the stored
+key (no paste, e.g. model change): success -> active + model + lastValidatedAt=now;
+permanent failure (invalid_key/model_unavailable) -> status=failed + lastError, ciphertext
+kept; transient failure (rate_limited/network) -> status UNCHANGED (don't downgrade
+active), category surfaced in the response only (open-question default #4). Masked hint:
+show NOTHING (default #2). Validation prompt: shortest possible, `maxOutputTokens` ~4
+(default #3), bounded server-side timeout -> `network`. Client-side `sk-ant-` shape: a
+non-blocking hint only (default #5). Validation uses the **Vercel AI SDK**
+(`ai` + `@ai-sdk/anthropic`) per the locked stack (HANDOFF), behind a `ClaudeValidator`
+port; CI mocks the provider, an `ANTHROPIC_API_KEY`-gated live smoke is optional.
+
 ### 16-deploy | managed Postgres provider
 2026-06-17 — `[CONFIRM-WITH-HUMAN]` Default: pick one of **Neon / Supabase**; use
 the direct (non-pooled) URL for the migration step and a pooled URL for the app if

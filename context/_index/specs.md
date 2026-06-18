@@ -38,7 +38,7 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
 - **Shipped** — [[../specs/10-connect-db-ui/spec|10 · Connect-DB UI]] — frontend for the full connect-DB flow (consent → script → credentials → test → choose tables/relationships → status). _Deps: 06, 07, 08, 09._
 
 ### Phase 3 — Connect the AI (Claude)
-- **Planned** — [[../specs/11-ai-connection-claude/spec|11 · Connect Claude]] — paste API key; validate with a test call (Vercel AI SDK); encrypt; set `default_model`; status + `last_error`; frontend. _Deps: 02, 05, 06._
+- **In progress** — [[../specs/11-ai-connection-claude/spec|11 · Connect Claude]] — paste API key; validate with a test call (Vercel AI SDK); encrypt; set `default_model`; status + `last_error`; frontend. _Deps: 02, 05, 06._
 
 ### Phase 4 — Chat (the core)
 - **Planned** — [[../specs/12-query-function-registry/spec|12 · Query-function registry]] — the predefined, parameterized, read-only query functions over exposed tables/relationships; allow-list enforcement; backend builds the SQL, never the model. _The constitutional heart. Deps: 09._
