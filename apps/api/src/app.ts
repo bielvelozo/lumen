@@ -11,6 +11,8 @@ import type { AccessTokenService } from './auth/jwt';
 import { makeRequireAuth } from './auth/require-auth';
 import type { ConsentService } from './db-connection/consent.service';
 import { registerConsentRoutes } from './db-connection/consent.route';
+import type { DbConnectionService } from './db-connection/db-connection.service';
+import { registerDbConnectionRoutes } from './db-connection/db-connection.route';
 
 /**
  * Dependencies injected into the app. Optional so `/health` (and the existing
@@ -22,8 +24,13 @@ export interface AppDeps {
   signupService?: SignupService;
   verificationService?: VerificationService;
   auth?: AuthRouteDeps;
-  /** DB-connection consent + onboarding-script routes (spec 07). `requireAuth` from the JWT. */
-  dbConnection?: { consentService: ConsentService; accessTokenService: AccessTokenService };
+  /** DB-connection consent + create/test routes (specs 07/08). `requireAuth` from the JWT. */
+  dbConnection?: {
+    consentService: ConsentService;
+    /** spec 08 create/test connection (optional until spec 08 wires it). */
+    dbConnectionService?: DbConnectionService;
+    accessTokenService: AccessTokenService;
+  };
 }
 
 /**
@@ -59,6 +66,9 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
   if (deps.dbConnection) {
     const requireAuth = makeRequireAuth(deps.dbConnection.accessTokenService);
     registerConsentRoutes(app, deps.dbConnection.consentService, requireAuth);
+    if (deps.dbConnection.dbConnectionService) {
+      registerDbConnectionRoutes(app, deps.dbConnection.dbConnectionService, requireAuth);
+    }
   }
 
   return app;

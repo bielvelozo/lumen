@@ -23,6 +23,11 @@ function buildConsentApp(accept: AcceptConsentResult = { ok: true }) {
     acceptConsent,
     getStatus: async () => STATUS,
     hasCurrentConsent: async () => true,
+    getCurrentConsentRecord: async () => ({
+      version: CURRENT_CONSENT_VERSION,
+      acceptedAt: new Date(),
+      acceptedBy: USER,
+    }),
   };
   const app = buildApp({ dbConnection: { consentService: service, accessTokenService: accessTokens } });
   return { app, acceptConsent };

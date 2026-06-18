@@ -1,5 +1,5 @@
 import { CURRENT_CONSENT_VERSION, type ConsentStatusResponse } from '@lumen/shared';
-import type { ConsentStore } from './consent.store';
+import type { ConsentStore, ConsentRecord } from './consent.store';
 
 export type AcceptConsentResult =
   | { ok: true }
@@ -12,6 +12,8 @@ export interface ConsentService {
   getStatus(orgId: string): Promise<ConsentStatusResponse>;
   /** Gate used by spec 08: true iff a current-version consent exists for the org. */
   hasCurrentConsent(orgId: string): Promise<boolean>;
+  /** The current-version consent record to copy into `db_connections`, or `null` if missing/stale. */
+  getCurrentConsentRecord(orgId: string): Promise<ConsentRecord | null>;
 }
 
 export function createConsentService(store: ConsentStore): ConsentService {
@@ -36,6 +38,11 @@ export function createConsentService(store: ConsentStore): ConsentService {
 
     async hasCurrentConsent(orgId): Promise<boolean> {
       return (await store.getAcceptedVersion(orgId)) === CURRENT_CONSENT_VERSION;
+    },
+
+    async getCurrentConsentRecord(orgId): Promise<ConsentRecord | null> {
+      const record = await store.getConsentRecord(orgId);
+      return record && record.version === CURRENT_CONSENT_VERSION ? record : null;
     },
   };
 }

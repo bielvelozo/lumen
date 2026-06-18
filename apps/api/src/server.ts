@@ -2,7 +2,7 @@ import type { Env } from '@lumen/shared';
 import { buildApp } from './app';
 import { loadEnv } from './env';
 import { makeDb } from './db/client';
-import { hashPassword, verifyPassword, generateToken, hashToken } from './crypto';
+import { hashPassword, verifyPassword, generateToken, hashToken, createCryptoModule } from './crypto';
 import { createSignupService } from './auth/signup.service';
 import { makeDrizzleSignupStore } from './auth/signup.store';
 import { createVerificationService } from './auth/verification.service';
@@ -14,6 +14,9 @@ import { makeDrizzleSessionStore } from './auth/session.store';
 import { createAuthService } from './auth/auth.service';
 import { makeDrizzleConsentStore } from './db-connection/consent.store';
 import { createConsentService } from './db-connection/consent.service';
+import { makeDrizzleDbConnectionStore } from './db-connection/db-connection.store';
+import { createDbConnectionService } from './db-connection/db-connection.service';
+import { createMysqlConnectionTester } from './db-connection/connection-tester';
 
 // Access token ~15 min; refresh 30 days (fixed lifetime, v1). See DECISIONS.md.
 const ACCESS_TTL_SECONDS = 15 * 60;
@@ -67,8 +70,16 @@ const authService = createAuthService({
   refreshTtlMs: REFRESH_TTL_SECONDS * 1000,
 });
 
-// DB-connection consent + onboarding script (spec 07).
+// DB-connection consent + onboarding script (spec 07) + create/test connection (spec 08).
 const consentService = createConsentService(makeDrizzleConsentStore(db));
+const crypto = createCryptoModule(env); // encrypt/decrypt the client-DB password (spec 02)
+const dbConnectionService = createDbConnectionService({
+  store: makeDrizzleDbConnectionStore(db),
+  tester: createMysqlConnectionTester(),
+  consentService,
+  encrypt: crypto.encrypt,
+  decrypt: crypto.decrypt,
+});
 
 const app = buildApp({
   signupService,
@@ -79,7 +90,7 @@ const app = buildApp({
     accessTtlSeconds: ACCESS_TTL_SECONDS,
     refreshTtlSeconds: REFRESH_TTL_SECONDS,
   },
-  dbConnection: { consentService, accessTokenService },
+  dbConnection: { consentService, dbConnectionService, accessTokenService },
 });
 
 app
