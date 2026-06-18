@@ -46,7 +46,7 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
 - **Shipped** — [[../specs/14-chat-ui/spec|14 · Chat UI]] — sessions list, streaming message render on solid surfaces (glass only on chrome/input), model switch. _Deps: 06, 13._
 
 ### Phase 5 — Observability & deploy
-- **In progress** — [[../specs/15-observability-sentry/spec|15 · Observability]] — Sentry (api + web); error/log sanitization that never carries raw customer data; `function_call_logs` audit view. _Deps: 13._
+- **Shipped** — [[../specs/15-observability-sentry/spec|15 · Observability]] — Sentry (api + web); error/log sanitization that never carries raw customer data; `function_call_logs` audit view. _Deps: 13._
 - **Planned** — [[../specs/16-deploy/spec|16 · Deploy]] — Dockerfile for `apps/api`; Cloudflare Pages for `apps/web`; managed Postgres (Neon/Supabase); cross-site cookie/CORS config; CI basics. _Deps: all._
 
 ## Shipped
@@ -77,6 +77,18 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
   best-effort post-commit via a `VerificationTrigger` seam (spec 04 fills it). Service
   + route unit tests; live store integration (atomic tx + UNIQUE rollback) ran green vs
   Docker Postgres. All gates green.
+- **15 · Observability** — shipped 2026-06-18. Sentry on `apps/api` (`@sentry/node`) + `apps/web`
+  (`@sentry/react`) behind a strict scrubber, plus the org-scoped audit READ path. **Gate-1**
+  (review found real HIGH leak paths in the first pass; ALL resolved). One shared `redactSensitive`
+  + `scrubSentryEvent` in `packages/shared` is the single source of truth for both `beforeSend`s
+  AND the `function_call_logs` write-site guard: it DROPS request headers/body/query/cookies +
+  server name WHOLESALE, redacts denylisted keys with separator-insensitive matching (catches
+  `x-api-key`), redacts secret-shaped strings (sk-ant/Bearer/DSN) inside values, and guards against
+  prototype pollution. `sendDefaultPii:false`, no Replay/Feedback, no-DSN-disables-cleanly; an
+  opaque random request id + a sanitized error handler. `GET /audit/function-calls` is org-scoped
+  from the JWT (anti-IDOR; live cross-org isolation test green vs Docker Postgres); a minimal web
+  audit list renders on SOLID surfaces + a React `ErrorBoundary`. 73 shared + 264 api (+38 skips) +
+  54 web tests green.
 - **14 · Chat UI** — shipped 2026-06-18. The Flow-4 frontend — the product's main screen, in
   spec-06's protected shell. Two panes: a GLASS sessions sidebar (chrome, `updated_at` desc,
   create/select/rename) + a SOLID conversation column (`ChatBubble`s, figures in `tabular-nums`)

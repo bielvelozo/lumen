@@ -448,6 +448,37 @@ security-weakening (same org-scoped seam as spec 13). GUARD: glass-only RTL test
 (no bubble/card/metric/figure under `.glass`; sidebar + input MAY be glass); a lib test asserts
 no chat request carries an org_id.
 
+### 15-observability | open-question defaults
+2026-06-18 — Defaults taken (all spec-15 open questions). (1) Traces sample rate: conservative
+`0.1`, env-overridable (`SENTRY_TRACES_SAMPLE_RATE`), tuned per-env at deploy (16). (2)
+`function_call_logs` retention/archival: OUT of scope here; flagged for a later spec (rows grow
+per org; the audit view paginates). (3) Audit visibility: owner-only in v1 (only role present).
+(4) Sentry tenant tag: OMIT any tenant identifier; the only tag is the opaque random request id.
+(5) SDK versions: pinned `@sentry/node`@10 + `@sentry/react`@10 (current stable).
+
+### 15-observability | Gate-1 security-review result
+2026-06-18 — Gate 1 (security-review-before-merge) run on the spec-15 diff. The reviewer found
+real HIGH leak paths in the FIRST pass — all RESOLVED before shipping: (F1) Sentry request
+HEADERS were not dropped (only key-redacted) → now `scrubSentryEvent` deletes
+`request.headers/data/query_string/cookies` + `server_name` WHOLESALE; (F2) `x-api-key`/hyphenated
+key forms bypassed the substring denylist → `isSensitiveKey` now normalizes separators
+(`x-api-key`→`xapikey` matches `apikey`) + broader denylist (auth/credential/bearer/dsn/cpf/cnpj/
+ssn/phone); (F2/F5) a secret embedded in an error STRING (sk-ant-/Bearer/DSN) is now redacted by
+pattern over string values (incl. `exception.values[].value`); (F4) the WEB `beforeSend` was
+weaker → now reuses the SAME shared `scrubSentryEvent` + adds `beforeBreadcrumb`; (M) prototype-
+polluting keys (`__proto__`/`constructor`/`prototype`) are dropped in the recursive walk. The
+shared scrubber is the single source of truth for API + web + the `function_call_logs` write-site
+guard. UPHELD without change: audit anti-IDOR (org from JWT only; `.strict()` rejects a forged
+`orgId`; store filters `WHERE org_id=<jwt>`; live cross-org test green), the write-site param
+guard (`redactSensitive` on params; `error_message` is a closed code), `sendDefaultPii:false`, no
+Replay/Feedback, no-DSN-disables, the opaque request id, and the error handler returning ONLY the
+request id. RESIDUAL (accepted, documented): a raw client-DB ROW placed under a BENIGN key in
+`event.extra`/`contexts` would survive key-redaction — but NO code path does this (the only
+`captureException` is the app error handler passing a framework `Error`, never rows; query-runner
+errors are caught + sanitized to a code and never thrown out with rows). Enforced by convention +
+the request-body wholesale drop (the main row ingress). `sendDefaultPii:false` keeps stack-frame
+local vars off.
+
 ### 16-deploy | managed Postgres provider
 2026-06-17 — `[CONFIRM-WITH-HUMAN]` Default: pick one of **Neon / Supabase**; use
 the direct (non-pooled) URL for the migration step and a pooled URL for the app if

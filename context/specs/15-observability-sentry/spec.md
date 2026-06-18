@@ -1,8 +1,8 @@
 ---
-status: draft
+status: shipped
 feature: observability-sentry
 created: 2026-06-17
-shipped: null
+shipped: 2026-06-18
 ---
 # Observability & Auditability (Sentry) — Spec
 
