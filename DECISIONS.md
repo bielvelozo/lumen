@@ -25,6 +25,29 @@ installed LTS). pnpm pinned to **10.33.0** via `packageManager` + corepack. Dock
 images pinned **postgres:16-alpine** and **mysql:8.0** (stable, current). Recorded
 as the project version baseline; revisit only as a convention-level change.
 
+### 01-app-db | minimum supported PostgreSQL version
+2026-06-18 — Default taken: **PG >= 13** (so `gen_random_uuid()` is native; matches
+the spec-00 local container `postgres:16-alpine` and the intended Neon/Supabase
+target). The first migration also runs `CREATE EXTENSION IF NOT EXISTS pgcrypto`
+defensively. Not security-sensitive; recorded without the human-confirm flag.
+
+### 01-app-db | Postgres driver
+2026-06-18 — Default taken: **node-postgres (`pg`)** with
+`drizzle-orm/node-postgres`, over `postgres.js`. Ecosystem familiarity; either works
+with Drizzle. Locked as a convention. Not security-sensitive.
+
+### 01-app-db | migration apply mechanism
+2026-06-18 — Default taken: a **small programmatic migrator** (`drizzle-orm`
+`migrate()` invoked by `pnpm db:migrate` -> `tsx src/db/migrate.ts`) over
+`drizzle-kit migrate`, so the spec-16 production deploy runs migrations the same
+way. Not security-sensitive.
+
+### 01-app-db | v1 single-connection/single-AI uniqueness indexes
+2026-06-18 — Default taken: **no** — mirror `db/schema.sql`; the commented-out
+`uq_dbconn_org` / `uq_aiconn_org` unique indexes stay absent. "One connection per
+org" / "one AI provider per org" is enforced in application logic by specs 08 / 11.
+Not security-sensitive.
+
 ### 03-signup | duplicate-email response
 2026-06-17 — `[CONFIRM-WITH-HUMAN]` Default: respond with a **uniform,
 non-revealing success** (anti-enumeration). Signup with an already-registered email
@@ -61,8 +84,13 @@ needed. Final provider chosen at deploy time. Flagged for human review.
 
 ## Live-verification-pending (env-gated tests that skip when the resource is absent)
 
-_None yet. As env-gated integration tests are added, each skipped one is recorded
-here with the env var that gates it (per RALPH.md sections 2e / 4 / 7-2)._
+LIVE-VERIFICATION-PENDING: apps/api migrate smoke test (`src/db/schema.test.ts` ->
+"live: migrate applies cleanly to a fresh Postgres") is gated on `DATABASE_URL`. It
+SKIPS in the default `pnpm test` (vitest does not load `.env`, so CI without a DB
+passes). It MUST be run green at least once against local Docker Postgres — done
+this iteration via `DATABASE_URL=... vitest run` (creates/migrates/drops a throwaway
+`lumen_migrate_smoke` database, asserts the 4 enums + 11 tables + a DESC index, then
+drops it). Re-confirm in the §7(2) final live gate.
 
 ---
 
