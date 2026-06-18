@@ -23,7 +23,7 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
 ### Phase 0 — Foundation
 - **Shipped** — [[../specs/00-monorepo-scaffold/spec|00 · Monorepo scaffold]] — pnpm + Turborepo workspace (`apps/web`, `apps/api`, `packages/shared`), TS/ESLint/Prettier/Vitest, env validation, local Docker (Postgres + MySQL). _Deps: none._
 - **Shipped** — [[../specs/01-app-db-drizzle/spec|01 · App DB + Drizzle]] — Drizzle against Postgres; port `db/schema.sql` to a Drizzle schema; migrations, seed, `updated_at` handling. _Deps: 00._
-- **Planned** — [[../specs/02-secrets-and-tokens/spec|02 · Secrets & tokens]] — encryption-at-rest module (key outside the DB) for `bytea` secrets; token hashing for verification/refresh; password hashing helper. _Deps: 00, 01._
+- **In progress** — [[../specs/02-secrets-and-tokens/spec|02 · Secrets & tokens]] — encryption-at-rest module (key outside the DB) for `bytea` secrets; token hashing for verification/refresh; password hashing helper. _Deps: 00, 01._
 
 ### Phase 1 — Base & Auth
 - **Planned** — [[../specs/03-signup-and-org/spec|03 · Signup & org creation]] — signup creates org + owner user; password hashed; validation. _Deps: 01, 02._
