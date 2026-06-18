@@ -58,7 +58,13 @@ describe('dbConnectionService.createOrUpdate', () => {
     const result = await t.service.createOrUpdate('org-1', CONFIG);
     expect(result).toEqual({
       outcome: 'saved',
-      state: { hasConnection: true, status: 'active', lastTestedAt: '2026-06-18T12:00:00.000Z', lastError: null },
+      state: {
+        hasConnection: true,
+        status: 'active',
+        lastTestedAt: '2026-06-18T12:00:00.000Z',
+        lastError: null,
+        config: { host: 'db.example.com', port: 3306, databaseName: 'shop', username: 'lumen_ro', sslEnabled: false },
+      },
     });
     const upserted = t.upsert.mock.calls[0]?.[0] as UpsertConnectionInput;
     expect(upserted.orgId).toBe('org-1');

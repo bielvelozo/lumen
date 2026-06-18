@@ -37,8 +37,9 @@ function toState(
   status: ConnectionStatus,
   lastTestedAt: Date,
   lastError: ConnectionErrorCategory | null,
+  config: DbConnectionState['config'],
 ): DbConnectionState {
-  return { hasConnection: true, status, lastTestedAt: lastTestedAt.toISOString(), lastError };
+  return { hasConnection: true, status, lastTestedAt: lastTestedAt.toISOString(), lastError, config };
 }
 
 export function createDbConnectionService(deps: DbConnectionServiceDeps): DbConnectionService {
@@ -84,7 +85,16 @@ export function createDbConnectionService(deps: DbConnectionServiceDeps): DbConn
         consentAcceptedBy: consent.acceptedBy,
       });
 
-      return { outcome: 'saved', state: toState(status, lastTestedAt, lastError) };
+      return {
+        outcome: 'saved',
+        state: toState(status, lastTestedAt, lastError, {
+          host: config.host,
+          port: config.port,
+          databaseName: config.databaseName,
+          username: config.username,
+          sslEnabled: config.sslEnabled,
+        }),
+      };
     },
 
     async retest(orgId): Promise<RetestResult> {
@@ -115,19 +125,36 @@ export function createDbConnectionService(deps: DbConnectionServiceDeps): DbConn
       }
       const lastTestedAt = now();
       await deps.store.updateStatus(orgId, { status, lastTestedAt, lastError });
-      return { outcome: 'tested', state: toState(status, lastTestedAt, lastError) };
+      return {
+        outcome: 'tested',
+        state: toState(status, lastTestedAt, lastError, {
+          host: row.host,
+          port: row.port,
+          databaseName: row.databaseName,
+          username: row.username,
+          sslEnabled: row.sslEnabled,
+        }),
+      };
     },
 
     async getState(orgId): Promise<DbConnectionState> {
       const state = await deps.store.getState(orgId);
       if (!state) {
-        return { hasConnection: false, status: null, lastTestedAt: null, lastError: null };
+        return { hasConnection: false, status: null, lastTestedAt: null, lastError: null, config: null };
       }
       return {
         hasConnection: true,
         status: state.status,
         lastTestedAt: state.lastTestedAt ? state.lastTestedAt.toISOString() : null,
         lastError: (state.lastError as ConnectionErrorCategory | null) ?? null,
+        // Non-secret config for the dashboard — the password is never included.
+        config: {
+          host: state.host,
+          port: state.port,
+          databaseName: state.databaseName,
+          username: state.username,
+          sslEnabled: state.sslEnabled,
+        },
       };
     },
   };

@@ -41,10 +41,17 @@ export interface DbConnectionStore {
     orgId: string,
     state: { status: ConnectionStatus; lastTestedAt: Date; lastError: ConnectionErrorCategory | null },
   ): Promise<void>;
-  /** Public state for `GET /db-connection` — never secrets. */
-  getState(
-    orgId: string,
-  ): Promise<{ status: ConnectionStatus; lastTestedAt: Date | null; lastError: string | null } | null>;
+  /** Public state for `GET /db-connection` — never secrets (config is non-secret, no password). */
+  getState(orgId: string): Promise<{
+    status: ConnectionStatus;
+    lastTestedAt: Date | null;
+    lastError: string | null;
+    host: string;
+    port: number;
+    databaseName: string;
+    username: string;
+    sslEnabled: boolean;
+  } | null>;
 }
 
 export function makeDrizzleDbConnectionStore(db: Database): DbConnectionStore {
@@ -122,6 +129,11 @@ export function makeDrizzleDbConnectionStore(db: Database): DbConnectionStore {
           status: dbConnections.status,
           lastTestedAt: dbConnections.lastTestedAt,
           lastError: dbConnections.lastError,
+          host: dbConnections.host,
+          port: dbConnections.port,
+          databaseName: dbConnections.databaseName,
+          username: dbConnections.username,
+          sslEnabled: dbConnections.sslEnabled,
         })
         .from(dbConnections)
         .where(eq(dbConnections.orgId, orgId))

@@ -46,15 +46,29 @@ export type ConnectionErrorCategory = (typeof CONNECTION_ERROR_CATEGORIES)[numbe
 export const connectionStatusSchema = z.enum(CONNECTION_STATUSES);
 
 /**
- * The public connection state returned by every connection endpoint. Carries NO secrets
- * (no password, host left out is fine for status — included for the UI's convenience is
- * NOT done here; only status + timing + sanitized error + whether a row exists).
+ * The non-secret connection config the dashboard displays (spec 10). NEVER the password.
+ */
+export const dbConnectionConfigPublicSchema = z.object({
+  host: z.string(),
+  port: z.number(),
+  databaseName: z.string(),
+  username: z.string(),
+  sslEnabled: z.boolean(),
+});
+
+export type DbConnectionConfigPublic = z.infer<typeof dbConnectionConfigPublicSchema>;
+
+/**
+ * The public connection state returned by `GET /db-connection`. Carries NO secrets — the
+ * non-secret `config` (host/port/db/user/ssl) is included for the dashboard, but the
+ * password is never returned.
  */
 export const dbConnectionStateSchema = z.object({
   hasConnection: z.boolean(),
   status: connectionStatusSchema.nullable(),
   lastTestedAt: z.string().nullable(),
   lastError: z.enum(CONNECTION_ERROR_CATEGORIES).nullable(),
+  config: dbConnectionConfigPublicSchema.nullable(),
 });
 
 export type DbConnectionState = z.infer<typeof dbConnectionStateSchema>;

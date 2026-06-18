@@ -17,6 +17,7 @@ const ACTIVE_STATE: DbConnectionState = {
   status: 'active',
   lastTestedAt: '2026-06-18T12:00:00.000Z',
   lastError: null,
+  config: { host: 'db.example.com', port: 3306, databaseName: 'shop', username: 'lumen_ro', sslEnabled: true },
 };
 
 const VALID_BODY: DbConnectionConfig = {
@@ -35,7 +36,7 @@ function buildDbConnApp(opts: { create?: CreateOrUpdateResult; retest?: RetestRe
   const service: DbConnectionService = {
     createOrUpdate,
     retest: async () => opts.retest ?? { outcome: 'tested', state: ACTIVE_STATE },
-    getState: async () => ({ hasConnection: false, status: null, lastTestedAt: null, lastError: null }),
+    getState: async () => ({ hasConnection: false, status: null, lastTestedAt: null, lastError: null, config: null }),
   };
   const consentService = {
     acceptConsent: vi.fn(),
@@ -113,6 +114,6 @@ describe('POST /db-connection/test + GET /db-connection', () => {
     ({ app } = buildDbConnApp());
     const res = await app.inject({ method: 'GET', url: '/db-connection', cookies: await cookie() });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ hasConnection: false, status: null, lastTestedAt: null, lastError: null });
+    expect(res.json()).toEqual({ hasConnection: false, status: null, lastTestedAt: null, lastError: null, config: null });
   });
 });
