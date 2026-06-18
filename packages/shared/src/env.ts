@@ -1,6 +1,18 @@
 import { z } from 'zod';
 
 /**
+ * Decoded byte length of a standard (padded) base64 string, or `null` if the value
+ * is not well-formed base64. Pure string math so this package stays free of Node
+ * globals (`Buffer`) — the API decodes the validated value with `Buffer` later.
+ */
+function base64ByteLength(value: string): number | null {
+  if (value.length === 0 || value.length % 4 !== 0) return null;
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(value)) return null;
+  const padding = value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0;
+  return (value.length / 4) * 3 - padding;
+}
+
+/**
  * The single source of truth for the project's environment contract.
  *
  * Every variable the project consumes is declared here and validated at API
@@ -14,7 +26,16 @@ export const envSchema = z.object({
   // Client database stand-in (MySQL) — required for the connection specs.
   MYSQL_URL: z.string().url('MYSQL_URL must be a valid connection URL'),
   // 32-byte AES-256-GCM master key (base64) for encryption-at-rest (spec 02).
-  SECRETS_ENCRYPTION_KEY: z.string().min(1, 'SECRETS_ENCRYPTION_KEY is required'),
+  // Validated to decode to EXACTLY 32 bytes so the API never boots with a wrong-
+  // length or silently-truncated key (fail fast — spec 02 invariant).
+  SECRETS_ENCRYPTION_KEY: z
+    .string()
+    .min(1, 'SECRETS_ENCRYPTION_KEY is required')
+    .refine((value) => base64ByteLength(value) === 32, {
+      message:
+        'SECRETS_ENCRYPTION_KEY must be a base64-encoded 32-byte key ' +
+        '(generate: `openssl rand -base64 32`)',
+    }),
   // JWT signing secret for the auth cookie (spec 05).
   JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),
 

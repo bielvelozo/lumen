@@ -5,7 +5,8 @@ import { loadEnv } from './env';
 const completeSource: Record<string, string | undefined> = {
   DATABASE_URL: 'postgres://user:pass@localhost:5432/lumen',
   MYSQL_URL: 'mysql://user:pass@localhost:3306/lumen_client',
-  SECRETS_ENCRYPTION_KEY: 'A'.repeat(44),
+  // 'A'*43 + '=' is valid base64 for 32 (zero) bytes — a structurally valid key.
+  SECRETS_ENCRYPTION_KEY: 'A'.repeat(43) + '=',
   JWT_SECRET: 'B'.repeat(64),
 };
 
