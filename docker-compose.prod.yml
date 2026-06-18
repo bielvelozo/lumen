@@ -1,0 +1,41 @@
+# Production deploy for the Lumen API on a single VPS (spec 16). The API runs as one non-root
+# container behind a TLS-terminating reverse proxy (see deploy/Caddyfile). It reads EVERY secret
+# from HOST ENV — nothing is committed here. Run the Drizzle migration step (see DEPLOY.md) against
+# managed Postgres BEFORE starting/upgrading this container.
+#
+#   Build:  docker compose -f docker-compose.prod.yml build
+#   Up:     docker compose -f docker-compose.prod.yml up -d
+#
+# Set these in the host environment (or an untracked .env beside this file — NEVER commit it):
+#   SECRETS_ENCRYPTION_KEY, JWT_SECRET, DATABASE_URL (managed Postgres, sslmode=require),
+#   WEB_ORIGIN (the production Pages origin), SENTRY_DSN (optional), RESEND_API_KEY (optional).
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    image: lumen-api:latest
+    restart: unless-stopped
+    # Bind only to loopback — the reverse proxy (Caddy) terminates TLS and proxies to it.
+    ports:
+      - '127.0.0.1:3001:3001'
+    environment:
+      NODE_ENV: production
+      PORT: '3001'
+      # Pulled from the host environment — values are NOT written in this file.
+      SECRETS_ENCRYPTION_KEY: ${SECRETS_ENCRYPTION_KEY:?set SECRETS_ENCRYPTION_KEY}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+      MYSQL_URL: ${MYSQL_URL:-}
+      WEB_ORIGIN: ${WEB_ORIGIN:?set WEB_ORIGIN}
+      APP_URL: ${APP_URL:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
+    # The image already defines a HEALTHCHECK against GET /health.
+    read_only: true
+    security_opt:
+      - no-new-privileges:true

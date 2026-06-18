@@ -1,0 +1,4 @@
+# Cloudflare Pages SPA fallback (spec 16): serve index.html for any path the static build does
+# not have a file for, so client-side deep links (e.g. /chat/:id, /audit) resolve on reload. The
+# 200 (rewrite, not 30x redirect) keeps the URL intact for React Router.
+/*    /index.html   200

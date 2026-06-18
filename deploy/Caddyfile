@@ -1,0 +1,14 @@
+# TLS-terminating reverse proxy for the Lumen API on the VPS (spec 16). Caddy obtains and renews
+# HTTPS certificates automatically, so the public API origin is HTTPS — REQUIRED for the
+# `SameSite=None; Secure` cross-site auth cookie (spec 05) to survive in the browser.
+#
+# Replace api.yourdomain.com with the real API hostname. The API container binds 127.0.0.1:3001
+# (see docker-compose.prod.yml); Caddy proxies to it. CORS + cookie flags are handled by the API
+# itself (WEB_ORIGIN allow-list) — the proxy only terminates TLS and forwards.
+#
+#   caddy run --config deploy/Caddyfile
+
+api.yourdomain.com {
+	encode gzip
+	reverse_proxy 127.0.0.1:3001
+}
