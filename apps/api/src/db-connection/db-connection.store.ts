@@ -21,8 +21,9 @@ export interface UpsertConnectionInput {
   consentAcceptedBy: string;
 }
 
-/** The stored row fields the service needs to re-test (incl. the encrypted password). */
+/** The stored row fields the service needs to re-test / introspect (incl. the encrypted password). */
 export interface StoredConnection {
+  id: string;
   host: string;
   port: number;
   databaseName: string;
@@ -88,6 +89,7 @@ export function makeDrizzleDbConnectionStore(db: Database): DbConnectionStore {
     async getByOrg(orgId: string): Promise<StoredConnection | null> {
       const rows = await db
         .select({
+          id: dbConnections.id,
           host: dbConnections.host,
           port: dbConnections.port,
           databaseName: dbConnections.databaseName,

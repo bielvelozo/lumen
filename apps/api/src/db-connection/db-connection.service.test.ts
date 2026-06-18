@@ -102,6 +102,7 @@ describe('dbConnectionService.createOrUpdate', () => {
 
 describe('dbConnectionService.retest', () => {
   const stored: StoredConnection = {
+    id: 'conn-1',
     host: 'h',
     port: 3306,
     databaseName: 'd',
