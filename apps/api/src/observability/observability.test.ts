@@ -29,14 +29,11 @@ describe('scrubEvent — a fully-poisoned event is sanitized', () => {
 
     const e = scrubEvent(structuredClone(poisoned));
 
-    // bodies / query / cookies dropped wholesale
+    // bodies / query / cookies / HEADERS dropped wholesale (no reliance on key matching)
     expect(e.request?.data).toBeUndefined();
     expect(e.request?.query_string).toBeUndefined();
     expect(e.request?.cookies).toBeUndefined();
-    // sensitive headers redacted; benign header kept
-    expect(e.request?.headers?.authorization).toBe(REDACTED);
-    expect(e.request?.headers?.cookie).toBe(REDACTED);
-    expect(e.request?.headers?.['content-type']).toBe('application/json');
+    expect(e.request?.headers).toBeUndefined();
     // server name stripped
     expect(e.server_name).toBeUndefined();
     // secrets / PII redacted deep in contexts/extra

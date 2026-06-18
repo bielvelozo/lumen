@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import { redactSensitive } from '@lumen/shared';
+import { scrubSentryEvent, scrubSentryBreadcrumb, type ScrubbableEvent } from '@lumen/shared';
 
 /**
  * Web Sentry init (spec 15). An absent `VITE_SENTRY_DSN` disables the SDK — local dev + tests
@@ -15,7 +15,9 @@ export function initWebSentry(): boolean {
     environment: (import.meta.env.VITE_SENTRY_ENVIRONMENT as string | undefined) ?? 'development',
     sendDefaultPii: false,
     integrations: [], // no Replay/Feedback — never capture input contents
-    beforeSend: (event) => redactSensitive(event) as typeof event,
+    // The SAME shared scrubber as the API: drop body/query/cookies/headers + redact secrets/PII.
+    beforeSend: (event) => scrubSentryEvent(event as unknown as ScrubbableEvent) as unknown as typeof event,
+    beforeBreadcrumb: (breadcrumb) => scrubSentryBreadcrumb(breadcrumb),
   });
   return true;
 }
