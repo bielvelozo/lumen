@@ -36,8 +36,13 @@ export const envSchema = z.object({
         'SECRETS_ENCRYPTION_KEY must be a base64-encoded 32-byte key ' +
         '(generate: `openssl rand -base64 32`)',
     }),
-  // JWT signing secret for the auth cookie (spec 05).
-  JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),
+  // JWT signing secret for the access-token cookie (spec 05). HS256 — a weak/short
+  // secret is offline-brute-forceable and would let an attacker forge tokens (full
+  // tenant takeover), so enforce a 32-char floor (>= the 256-bit hash output), mirroring
+  // SECRETS_ENCRYPTION_KEY's rigor. Generate: `openssl rand -base64 48`.
+  JWT_SECRET: z
+    .string()
+    .min(32, 'JWT_SECRET must be at least 32 characters of high-entropy randomness'),
 
   // Runtime — defaulted.
   PORT: z.coerce.number().int().positive().default(3001),

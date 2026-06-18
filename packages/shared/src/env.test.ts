@@ -52,6 +52,10 @@ describe('parseEnv', () => {
     );
   });
 
+  it('rejects a JWT_SECRET shorter than 32 characters', () => {
+    expect(() => parseEnv({ ...validEnv, JWT_SECRET: 'too-short' })).toThrow(/JWT_SECRET/);
+  });
+
   it('accepts a differently-shaped valid 32-byte base64 key', () => {
     // 32 bytes of 0xFF, standard base64 -> '/'*42 + '8='.
     const key = '/'.repeat(42) + '8=';
