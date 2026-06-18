@@ -1,12 +1,12 @@
 ---
-status: draft
+status: shipped
 feature: signup-and-org
 created: 2026-06-17
-shipped: null
+shipped: 2026-06-18
 ---
 # Signup & Organization — Spec
 
-**Status:** Draft
+**Status:** Shipped
 **Scope:** The signup endpoint (Flow 1, first half). `POST /auth/signup`: validate input with Zod, then **atomically** create the tenant (`organizations`) plus its single `owner` (`users`, `email_verified = false`, password hashed), and kick off email verification. This is the front door to the product — it is where a tenant comes into existence.
 
 ## Context

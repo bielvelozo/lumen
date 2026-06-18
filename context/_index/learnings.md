@@ -12,6 +12,7 @@ Learnings here are specific to Business Assistant. Code style conventions live i
 
 - [[../learnings/shared-package-consumed-as-ts-source|`@lumen/shared` is consumed as TS source (no build step)]] — JIT internal package: apps import its `src` directly; `tsc --noEmit` "no output files" turbo warning is expected (spec 00).
 - [[../learnings/base64-32-byte-key-validation-no-buffer|Validate a 32-byte base64 key in `@lumen/shared` without `Buffer`]] — keep shared Node-global-free: check decoded length with pure string math; a 32-byte key is 44 chars + one `=` (`'A'.repeat(44)` is 33 bytes!) (spec 02).
+- [[../learnings/signup-unique-violation-is-the-rollback-proof|Signup's duplicate-email path IS the rollback-atomicity proof]] — one tx (org→owner) + DB `UNIQUE(email)`: a duplicate naturally rolls back the org insert too; catch `23505`, return uniform 201; the same shape recurs in specs 08/11 (spec 03).
 
 ## `#reference` — Environment and commands
 

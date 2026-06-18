@@ -86,7 +86,28 @@ family/lineage if it adopts rotation-with-reuse-detection. Recorded; revisit in 
 2026-06-17 — `[CONFIRM-WITH-HUMAN]` Default: respond with a **uniform,
 non-revealing success** (anti-enumeration). Signup with an already-registered email
 returns the same "check your inbox" response as a fresh signup; no "email already
-in use" leak. Implemented in spec 03. Flagged for human review of UX trade-off.
+in use" leak. Implemented in spec 03 (relies on the DB `UNIQUE(email)` + tx
+rollback, NOT a racy pre-SELECT; the duplicate path returns the byte-identical 201
+body — asserted in route + service tests). Flagged for human review of UX trade-off.
+
+### 03-signup | password strength policy
+2026-06-18 — Default taken: **min length 8 + a small common-password denylist**
+(case-insensitive), no heavy composition rules (UX over complexity). Lives in
+`packages/shared/src/auth-contracts.ts` (`PASSWORD_MIN_LENGTH`,
+`COMMON_PASSWORD_DENYLIST`) as the single source of truth. Recorded as a convention;
+not security-weakening.
+
+### 03-signup | success response status and body
+2026-06-18 — Default taken: **`201 Created`** with a minimal, non-identifying
+message (`{ message }`) — never returns `org_id`, `user_id`, or a session. Same body
+for created and duplicate. Not security-weakening.
+
+### 03-signup | rate limiting / abuse protection on /auth/signup
+2026-06-18 — Default taken: **DEFER the mechanism** to a future cross-cutting
+middleware spec; flagged here so signup is not silently shipped as an open
+spam/enumeration vector. The endpoint is unauthenticated and mints `org_id`
+server-side (never accepts one — `.strict()` rejects unknown fields). Revisit when a
+rate-limit/middleware spec exists (and at spec 16 hardening).
 
 ### 07-08-consent | consent vs `encrypted_password NOT NULL`
 2026-06-17 — `[CONFIRM-WITH-HUMAN]` Default: **Option B** — a lightweight
@@ -125,6 +146,16 @@ passes). It MUST be run green at least once against local Docker Postgres — do
 this iteration via `DATABASE_URL=... vitest run` (creates/migrates/drops a throwaway
 `lumen_migrate_smoke` database, asserts the 4 enums + 11 tables + a DESC index, then
 drops it). Re-confirm in the §7(2) final live gate.
+
+LIVE-VERIFICATION-PENDING: apps/api signup-store integration test
+(`src/auth/signup.store.integration.test.ts` -> "live: signup store (Drizzle
+transaction)") is gated on `DATABASE_URL`. SKIPS in the default `pnpm test`. Run
+GREEN on 2026-06-18 against local Docker Postgres via
+`DATABASE_URL=postgres://postgres:postgres@localhost:5432/lumen npx vitest run`
+(throwaway `lumen_signup_test` DB: migrate, then assert created -> exactly 1 org +
+1 owner with an argon2 `password_hash` (not raw), and duplicate-email -> `duplicate`
+with the org insert rolled back, zero new rows). Re-confirm in the §7(2) final live
+gate.
 
 ---
 

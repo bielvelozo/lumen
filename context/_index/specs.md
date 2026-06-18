@@ -26,7 +26,7 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
 - **Shipped** — [[../specs/02-secrets-and-tokens/spec|02 · Secrets & tokens]] — encryption-at-rest module (key outside the DB) for `bytea` secrets; token hashing for verification/refresh; password hashing helper. _Deps: 00, 01._
 
 ### Phase 1 — Base & Auth
-- **In progress** — [[../specs/03-signup-and-org/spec|03 · Signup & org creation]] — signup creates org + owner user; password hashed; validation. _Deps: 01, 02._
+- **Shipped** — [[../specs/03-signup-and-org/spec|03 · Signup & org creation]] — signup creates org + owner user; password hashed; validation. _Deps: 01, 02._
 - **Planned** — [[../specs/04-email-verification/spec|04 · Email verification]] — Resend; hashed single-use expiring token; verify + resend endpoints. _Deps: 03._
 - **Planned** — [[../specs/05-login-jwt-sessions/spec|05 · Login, JWT & sessions]] — login; JWT in httpOnly/Secure/SameSite=None cookie; refresh-token rotation (hashed, revocable); logout; auth middleware that derives `org_id` from the JWT (anti-IDOR foundation). _Deps: 02, 03._
 - **Planned** — [[../specs/06-web-shell-and-auth-ui/spec|06 · Web shell & auth UI]] — port the design system into `apps/web`; AppBackground, theme toggle, router, TanStack Query, auth pages, protected-route guard. _Deps: 00, 03, 04, 05._
@@ -68,3 +68,12 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
   constant-time-verify + pure freshness check, and argon2id passwords via
   `@node-rs/argon2`. Errors carry only safe reason codes (no secret/plaintext). 46
   unit tests; all gates green; `/security-review` clean (Gate 1).
+- **03 · Signup & org creation** — shipped 2026-06-18. `POST /auth/signup`
+  (unauthenticated): shared `.strict()` Zod contract (email trim+lowercase, password
+  min-8 + denylist, orgName trim/bounds), atomic Drizzle tx creating one
+  `organizations` + one `owner` `users` (password argon2-hashed via spec 02). Duplicate
+  email → uniform 201 via DB `UNIQUE(email)` + tx rollback (no orphan org), not a racy
+  pre-SELECT; raw password never persisted/echoed (guard test). Verification fired
+  best-effort post-commit via a `VerificationTrigger` seam (spec 04 fills it). Service
+  + route unit tests; live store integration (atomic tx + UNIQUE rollback) ran green vs
+  Docker Postgres. All gates green.
