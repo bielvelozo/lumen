@@ -47,7 +47,19 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
 
 ### Phase 5 — Observability & deploy
 - **Shipped** — [[../specs/15-observability-sentry/spec|15 · Observability]] — Sentry (api + web); error/log sanitization that never carries raw customer data; `function_call_logs` audit view. _Deps: 13._
-- **In progress** — [[../specs/16-deploy/spec|16 · Deploy]] — Dockerfile for `apps/api`; Cloudflare Pages for `apps/web`; managed Postgres (Neon/Supabase); cross-site cookie/CORS config; CI basics. _Deps: all._
+- **Shipped** — [[../specs/16-deploy/spec|16 · Deploy]] — Dockerfile for `apps/api`; Cloudflare Pages for `apps/web`; managed Postgres (Neon/Supabase); cross-site cookie/CORS config; CI basics. _Deps: all._
+
+  Shipped 2026-06-18 (**Gate-1**, clean; MEDIUM + LOW resolved). Multi-stage NON-ROOT API image
+  (`node:22-bookworm-slim`, esbuild bundle inlining `@lumen/shared` + `pnpm deploy --prod` for
+  prod-only deps, HEALTHCHECK `/health`); root + per-Dockerfile `.dockerignore` (no `.env`/source/
+  tests/dev-deps in the image — VERIFIED). Cross-site CORS via `@fastify/cors` (`credentials:true`
+  + explicit env `WEB_ORIGIN` allow-list, never `*`; Zod rejects a `*`). Cloudflare Pages config
+  (`_redirects` SPA fallback, build-time `VITE_API_URL`). GitHub Actions CI (frozen lockfile +
+  turbo build/lint/type-check/test, pinned Node, no prod secrets). `docker-compose.prod.yml`
+  (host-env, non-root, read-only, loopback) + `deploy/Caddyfile` (auto-HTTPS). `DEPLOY.md` runbook
+  (first deploy/release/rollback/migration/secret-rotation incl. master-key re-encryption) + env
+  inventory. GATES VERIFIED vs local Docker: the image boots from env → `/health` 200 (non-root,
+  fail-fast on a missing secret); Drizzle migrations apply then a re-run is a no-op.
 
 ## Shipped
 
