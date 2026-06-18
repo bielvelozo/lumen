@@ -64,6 +64,7 @@ export function AppShell(): JSX.Element {
           <NavItem href="/chat">Chat</NavItem>
           <NavItem href="/connect/database">Banco de dados</NavItem>
           <NavItem href="/connect/ai">IA (Claude)</NavItem>
+          <NavItem href="/audit">Auditoria</NavItem>
         </nav>
       </GlassPanel>
 

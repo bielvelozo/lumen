@@ -6,6 +6,7 @@ import { HomePage } from './routes/HomePage';
 import { ConnectDatabasePage } from './routes/connect-db/ConnectDatabasePage';
 import { ConnectAiPage } from './routes/connect-ai/ConnectAiPage';
 import { ChatPage } from './routes/chat/ChatPage';
+import { AuditPage } from './routes/audit/AuditPage';
 import { SignupPage } from './pages/SignupPage';
 import { LoginPage } from './pages/LoginPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
@@ -38,6 +39,7 @@ export function AppRoutes(): JSX.Element {
           <Route path="/connect/ai" element={<ConnectAiPage />} />
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/chat/:sessionId" element={<ChatPage />} />
+          <Route path="/audit" element={<AuditPage />} />
         </Route>
       </Route>
 
