@@ -42,7 +42,7 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
 
 ### Phase 4 — Chat (the core)
 - **Shipped** — [[../specs/12-query-function-registry/spec|12 · Query-function registry]] — the predefined, parameterized, read-only query functions over exposed tables/relationships; allow-list enforcement; backend builds the SQL, never the model. _The constitutional heart. Deps: 09._
-- **Planned** — [[../specs/13-chat-orchestrator/spec|13 · Chat orchestrator]] — Fastify route + AI SDK tool-calling mapping model tool calls → query functions; streaming; persist `messages` (org-scoped); `function_call_logs` (sanitized); unhappy paths. _Deps: 11, 12._
+- **In progress** — [[../specs/13-chat-orchestrator/spec|13 · Chat orchestrator]] — Fastify route + AI SDK tool-calling mapping model tool calls → query functions; streaming; persist `messages` (org-scoped); `function_call_logs` (sanitized); unhappy paths. _Deps: 11, 12._
 - **Planned** — [[../specs/14-chat-ui/spec|14 · Chat UI]] — sessions list, streaming message render on solid surfaces (glass only on chrome/input), model switch. _Deps: 06, 13._
 
 ### Phase 5 — Observability & deploy
