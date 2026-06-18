@@ -35,7 +35,7 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
 - **Shipped** — [[../specs/07-db-connection-consent-and-script/spec|07 · Consent & onboarding script]] — terms/consent capture; generate the read-only onboarding SQL script for the customer. _Deps: 05, 06._
 - **Shipped** — [[../specs/08-db-connection-create-and-test/spec|08 · Create & test connection]] — create `db_connections`; encrypt password; live MySQL connection test; `status` (pending/active/failed) + sanitized `last_error`; read-only/least-privilege checks. _Deps: 02, 07._
 - **Shipped** — [[../specs/09-introspection-and-exposure/spec|09 · Introspection & exposure]] — introspect tables/columns/FKs; owner approves `exposed_tables` + `exposed_relationships` (allow-list). _Deps: 08._
-- **In progress** — [[../specs/10-connect-db-ui/spec|10 · Connect-DB UI]] — frontend for the full connect-DB flow (consent → script → credentials → test → choose tables/relationships → status). _Deps: 06, 07, 08, 09._
+- **Shipped** — [[../specs/10-connect-db-ui/spec|10 · Connect-DB UI]] — frontend for the full connect-DB flow (consent → script → credentials → test → choose tables/relationships → status). _Deps: 06, 07, 08, 09._
 
 ### Phase 3 — Connect the AI (Claude)
 - **Planned** — [[../specs/11-ai-connection-claude/spec|11 · Connect Claude]] — paste API key; validate with a test call (Vercel AI SDK); encrypt; set `default_model`; status + `last_error`; frontend. _Deps: 02, 05, 06._
@@ -77,6 +77,19 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
   best-effort post-commit via a `VerificationTrigger` seam (spec 04 fills it). Service
   + route unit tests; live store integration (atomic tx + UNIQUE rollback) ran green vs
   Docker Postgres. All gates green.
+- **10 · Connect-DB UI** — shipped 2026-06-18. The Flow-2 frontend in `apps/web`: a single
+  protected route `/connect/database` whose step is **derived purely from server state**
+  (consent → connect → exposure → dashboard; no client step flag, so deep-linking a later
+  step is impossible). Consumes specs 07/08/09 via TanStack Query (queries + mutations that
+  invalidate): consent terms/accept; onboarding script on a **solid** code panel + copy;
+  credential form (shared Zod, write-only/masked password, 400 mapping, **422
+  over-privileged** → "not read-only" error); test result (sanitized category + retry
+  without re-entering the password); introspection picker with the **both-endpoints client
+  guard** (UX mirror of 09's server rule); status dashboard showing the non-secret config
+  (NEVER the password) + status + exposure + re-test/edit actions. Extended `GET
+  /db-connection` to return the non-secret config. GUARD: glass-only RTL test (no data under
+  `.glass`) passes; a test asserts no request carries an `org_id`/connection id. 37 web
+  tests green; Vite build green. Not Gate-1/2 flagged.
 - **09 · Introspection & exposure** — shipped 2026-06-18. Flow-2 second half (backend;
   UI is spec 10) — the least-privilege data boundary specs 12/13 are bound to. **Gate-2
   CRITICAL** `/security-review`: all four checks PASS, no findings. `GET

@@ -296,6 +296,24 @@ multiple FKs between the same table pair). (drift) v1 keeps the point-in-time `c
 snapshot; re-running exposure refreshes it (no live sync / no drift flagging) — the read
 path (spec 12) is bounded by the allow-list regardless. Not security-weakening.
 
+### 10-connect-ui | route shape + derived step machine + reads
+2026-06-18 — Defaults taken: ONE parent route `/connect/database` in the protected shell;
+the wizard step is DERIVED from server state (consent → connect → exposure → dashboard),
+never a client-stored flag (deep-link to a later step is impossible — one route, derived
+view). Keyed off three reads: consent status (07), connection state (08), exposure (09).
+Extended `GET /db-connection` (08) to also return the non-secret `config`
+(host/port/db/user/ssl — NEVER the password) for the dashboard. Not security-weakening.
+
+### 10-connect-ui | over-privileged surfacing + edit-config + introspection + copy
+2026-06-18 — Defaults taken: because spec 08 is **detect-and-REJECT** (not warn-and-
+proceed), an over-privileged credential returns `422` and the credential form shows a
+clear "não é somente leitura — rode o script" error (supersedes the spec's softer
+warning-banner lean). Introspection is fetched on demand when entering the exposure step
+(+ re-introspect on edit). Edit-config / edit-exposure are inline panels on the dashboard;
+any config change re-enters the test flow; the password field stays write-only and blank
+on edit (08 keeps the stored secret). Copy is pt-BR inline. The relationship
+both-endpoints client guard is UX only (09's server validation stays authoritative).
+
 ### 16-deploy | managed Postgres provider
 2026-06-17 — `[CONFIRM-WITH-HUMAN]` Default: pick one of **Neon / Supabase**; use
 the direct (non-pooled) URL for the migration step and a pooled URL for the app if
