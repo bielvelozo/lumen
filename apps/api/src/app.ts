@@ -1,9 +1,12 @@
 import Fastify, { type FastifyInstance } from 'fastify';
+import cookie from '@fastify/cookie';
 import type { HealthResponse } from '@lumen/shared';
 import type { SignupService } from './auth/signup.service';
 import { registerSignupRoute } from './auth/signup.route';
 import type { VerificationService } from './auth/verification.service';
 import { registerVerificationRoutes } from './auth/verification.route';
+import type { AuthRouteDeps } from './auth/auth.route';
+import { registerAuthRoutes } from './auth/auth.route';
 
 /**
  * Dependencies injected into the app. Optional so `/health` (and the existing
@@ -14,6 +17,7 @@ import { registerVerificationRoutes } from './auth/verification.route';
 export interface AppDeps {
   signupService?: SignupService;
   verificationService?: VerificationService;
+  auth?: AuthRouteDeps;
 }
 
 /**
@@ -34,6 +38,12 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
 
   if (deps.verificationService) {
     registerVerificationRoutes(app, deps.verificationService);
+  }
+
+  if (deps.auth) {
+    // Cookie plugin must load before the auth routes / requireAuth read or set cookies.
+    app.register(cookie);
+    registerAuthRoutes(app, deps.auth);
   }
 
   return app;

@@ -25,8 +25,14 @@ function build(overrides: {
       overrides.rotate ?? { outcome: 'invalid' },
   );
   const revokeRefreshToken = vi.fn(async (_h: string, _n: Date) => {});
+  const findSessionUser = vi.fn(async (_id: string) => ({
+    userId: USER.id,
+    orgId: USER.orgId,
+    email: USER.email,
+  }));
   const store = {
     findUserByEmailForLogin,
+    findSessionUser,
     createRefreshToken,
     rotateRefreshToken,
     revokeRefreshToken,
@@ -113,6 +119,17 @@ describe('authService.refresh', () => {
   it('rejects a reused (revoked) token', async () => {
     const t = build({ rotate: { outcome: 'reuse_detected', userId: USER.id } });
     expect(await t.service.refresh('raw')).toEqual({ ok: false });
+  });
+});
+
+describe('authService.me', () => {
+  it('resolves the session for a verified caller id', async () => {
+    const t = build();
+    expect(await t.service.me(USER.id)).toEqual({
+      userId: USER.id,
+      orgId: USER.orgId,
+      email: USER.email,
+    });
   });
 });
 

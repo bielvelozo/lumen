@@ -32,6 +32,8 @@ export interface AuthService {
   login(input: LoginRequest): Promise<LoginResult>;
   refresh(rawRefreshToken: string): Promise<RefreshResult>;
   logout(rawRefreshToken: string): Promise<void>;
+  /** Resolve the session for a verified caller id (from the JWT) — for `GET /auth/me`. */
+  me(userId: string): Promise<SessionResponse | null>;
 }
 
 export function createAuthService(deps: AuthServiceDeps): AuthService {
@@ -111,6 +113,10 @@ export function createAuthService(deps: AuthServiceDeps): AuthService {
     async logout(rawRefreshToken: string): Promise<void> {
       if (!rawRefreshToken) return; // idempotent: nothing to revoke
       await deps.store.revokeRefreshToken(deps.hashToken(rawRefreshToken), now());
+    },
+
+    async me(userId: string): Promise<SessionResponse | null> {
+      return deps.store.findSessionUser(userId);
     },
   };
 }

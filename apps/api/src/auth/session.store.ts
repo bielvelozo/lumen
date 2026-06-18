@@ -36,6 +36,8 @@ export type RotateRefreshResult =
  */
 export interface SessionStore {
   findUserByEmailForLogin(email: string): Promise<LoginUser | null>;
+  /** Resolve the session payload for a verified caller (by id from the JWT). `null` if gone. */
+  findSessionUser(userId: string): Promise<{ userId: string; orgId: string; email: string } | null>;
   createRefreshToken(userId: string, tokenHash: string, expiresAt: Date): Promise<void>;
   rotateRefreshToken(
     presentedHash: string,
@@ -60,6 +62,17 @@ export function makeDrizzleSessionStore(db: Database): SessionStore {
         })
         .from(users)
         .where(eq(users.email, email))
+        .limit(1);
+      return rows[0] ?? null;
+    },
+
+    async findSessionUser(
+      userId: string,
+    ): Promise<{ userId: string; orgId: string; email: string } | null> {
+      const rows = await db
+        .select({ userId: users.id, orgId: users.orgId, email: users.email })
+        .from(users)
+        .where(eq(users.id, userId))
         .limit(1);
       return rows[0] ?? null;
     },
