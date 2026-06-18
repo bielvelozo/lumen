@@ -54,6 +54,7 @@ dependencies: contracts/env first, then the crypto primitives, then wiring + rev
 - [x] `apps/api/src/crypto/index.ts`: barrel + `createCryptoModule(env)` (reads master
       key ONCE). Confirm no module outside `crypto/` imports `node:crypto`/argon2.
 - [x] Full suite green: `pnpm build && pnpm lint && pnpm type-check && pnpm test`.
-- [ ] Gate 1 security: run `/security-review` on the diff; resolve findings.
-- [ ] Record open-question defaults + argon2 decision in `DECISIONS.md`; mark spec
+- [x] Gate 1 security: run `/security-review` on the diff; resolve findings.
+      (Clean — no HIGH/MEDIUM findings; all four crypto invariants verified.)
+- [x] Record open-question defaults + argon2 decision in `DECISIONS.md`; mark spec
       Shipped (MOC token + frontmatter) atomically; capture learnings.

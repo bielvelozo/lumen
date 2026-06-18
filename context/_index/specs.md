@@ -23,7 +23,7 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
 ### Phase 0 — Foundation
 - **Shipped** — [[../specs/00-monorepo-scaffold/spec|00 · Monorepo scaffold]] — pnpm + Turborepo workspace (`apps/web`, `apps/api`, `packages/shared`), TS/ESLint/Prettier/Vitest, env validation, local Docker (Postgres + MySQL). _Deps: none._
 - **Shipped** — [[../specs/01-app-db-drizzle/spec|01 · App DB + Drizzle]] — Drizzle against Postgres; port `db/schema.sql` to a Drizzle schema; migrations, seed, `updated_at` handling. _Deps: 00._
-- **In progress** — [[../specs/02-secrets-and-tokens/spec|02 · Secrets & tokens]] — encryption-at-rest module (key outside the DB) for `bytea` secrets; token hashing for verification/refresh; password hashing helper. _Deps: 00, 01._
+- **Shipped** — [[../specs/02-secrets-and-tokens/spec|02 · Secrets & tokens]] — encryption-at-rest module (key outside the DB) for `bytea` secrets; token hashing for verification/refresh; password hashing helper. _Deps: 00, 01._
 
 ### Phase 1 — Base & Auth
 - **Planned** — [[../specs/03-signup-and-org/spec|03 · Signup & org creation]] — signup creates org + owner user; password hashed; validation. _Deps: 01, 02._
@@ -60,3 +60,11 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
   `db/schema.sql` (4 enums, 11 tables, all FK delete actions, uniques, indexes),
   programmatic migrator (+pgcrypto), idempotent seed, structural test + live migrate
   smoke (ran green vs local Docker Postgres). All gates green.
+- **02 · Secrets & tokens** — shipped 2026-06-18. Single injectable `crypto` module
+  in `apps/api` (no consumer imports `node:crypto`/argon2 directly): AES-256-GCM
+  encryption-at-rest with a self-describing `version|key_id|iv|tag|ciphertext` blob
+  (fresh IV/call, tag-verified — tamper throws), keyring loaded once from a
+  32-byte-validated `SECRETS_ENCRYPTION_KEY`, disposable-token generate/SHA-256-hash/
+  constant-time-verify + pure freshness check, and argon2id passwords via
+  `@node-rs/argon2`. Errors carry only safe reason codes (no secret/plaintext). 46
+  unit tests; all gates green; `/security-review` clean (Gate 1).

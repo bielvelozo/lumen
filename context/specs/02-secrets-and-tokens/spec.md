@@ -1,12 +1,12 @@
 ---
-status: draft
+status: shipped
 feature: secrets-and-tokens
 created: 2026-06-17
-shipped: null
+shipped: 2026-06-18
 ---
 # Secrets & Tokens — Spec
 
-**Status:** Draft
+**Status:** Shipped
 **Scope:** A foundational crypto/secrets module in `apps/api` — three pure, well-tested capabilities consumed by every later auth and connection spec: (a) authenticated **encryption at rest** for `bytea` secrets, (b) **disposable-token** generate/hash/verify utilities, and (c) **password hashing** (argon2id). No endpoints, no flows — just the primitives, done correctly once.
 
 ## Context

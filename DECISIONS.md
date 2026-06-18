@@ -48,6 +48,40 @@ way. Not security-sensitive.
 org" / "one AI provider per org" is enforced in application logic by specs 08 / 11.
 Not security-sensitive.
 
+### 02-secrets | master-key source in production
+2026-06-18 — Default taken: a **validated env var** (`SECRETS_ENCRYPTION_KEY`,
+base64, decoded to EXACTLY 32 bytes by the shared Zod env schema — fail fast at
+boot). The crypto module holds a **keyring** (`Map<key_id, Buffer>`, active id `0`)
+so a managed secrets-manager backend can slot in at spec 16 without touching call
+sites. Not security-weakening; recorded without the human-confirm flag (locked at
+spec 16 per the open question).
+
+### 02-secrets | argon2id parameters
+2026-06-18 — Default taken: the **OWASP argon2id baseline** — memoryCost 19456 KiB
+(19 MiB), timeCost 2, parallelism 1. To be tuned to the VPS at spec 16 (open
+question deferred there). Recorded as the current convention; not security-weakening.
+
+### 02-secrets | password-hash library (argon2 vs bcrypt)
+2026-06-18 — Default taken: **`@node-rs/argon2`** (argon2id), chosen over the
+node-gyp `argon2` package for cross-platform reliability — it ships prebuilt napi
+binaries (no compiler/node-gyp), verified loading + hashing on this Windows host
+(`$argon2id$` PHC confirmed). bcrypt fallback NOT needed. NOTE: the library's
+`Algorithm` enum is an ambient `const enum` and cannot be referenced as a value
+under `verbatimModuleSyntax`; we omit the `algorithm` option (library default is
+argon2id) and lock the choice with a test asserting the `$argon2id$` PHC prefix.
+Re-verify the binary builds in the spec-16 Docker/Linux deploy image before closing 16.
+
+### 02-secrets | disposable-token raw length & encoding
+2026-06-18 — Default taken: **32 random bytes (CSPRNG) base64url-encoded** for the
+raw token; stored as a SHA-256 hex hash (fast unsalted hash is correct — input is
+already high-entropy). Confirm against the email-link UX in spec 04. Not
+security-weakening.
+
+### 02-secrets | refresh-token family/lineage id
+2026-06-18 — Default taken: **deferred**. This module exposes only
+generate/hash/verify + a pure freshness check; spec 05 owns any token
+family/lineage if it adopts rotation-with-reuse-detection. Recorded; revisit in 05.
+
 ### 03-signup | duplicate-email response
 2026-06-17 — `[CONFIRM-WITH-HUMAN]` Default: respond with a **uniform,
 non-revealing success** (anti-enumeration). Signup with an already-registered email
