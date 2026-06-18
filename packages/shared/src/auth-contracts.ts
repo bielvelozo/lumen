@@ -42,16 +42,22 @@ export const COMMON_PASSWORD_DENYLIST: ReadonlySet<string> = new Set([
  * password is left verbatim (spaces may be intentional) and only length/denylist-checked;
  * `organizationName` is trimmed and length-bounded.
  */
+/**
+ * The single password-strength policy (min length + common-password denylist), reused by
+ * signup AND password reset so the client and server enforce identical rules.
+ */
+export const passwordPolicySchema = z
+  .string()
+  .min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`)
+  .max(200, 'Password is too long')
+  .refine((value) => !COMMON_PASSWORD_DENYLIST.has(value.toLowerCase()), {
+    message: 'Password is too common — choose a less guessable one',
+  });
+
 export const signupRequestSchema = z
   .object({
     email: z.string().trim().toLowerCase().email('A valid email is required'),
-    password: z
-      .string()
-      .min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`)
-      .max(200, 'Password is too long')
-      .refine((value) => !COMMON_PASSWORD_DENYLIST.has(value.toLowerCase()), {
-        message: 'Password is too common — choose a less guessable one',
-      }),
+    password: passwordPolicySchema,
     organizationName: z
       .string()
       .trim()
@@ -166,3 +172,11 @@ export const resendVerificationResponseSchema = z.object({
 });
 
 export type ResendVerificationResponse = z.infer<typeof resendVerificationResponseSchema>;
+
+/**
+ * `reset-password` form contract (spec 06 UI). Reuses {@link passwordPolicySchema}. The
+ * raw reset token is carried separately (read from the URL), never validated here.
+ */
+export const resetPasswordFormSchema = z.object({ password: passwordPolicySchema }).strict();
+
+export type ResetPasswordForm = z.infer<typeof resetPasswordFormSchema>;
