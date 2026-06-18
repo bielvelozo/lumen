@@ -434,6 +434,14 @@ recipient only, never the link/token) and all unit tests use a fake sender (no r
 email in CI). The real `resendEmailSender` (fetch -> api.resend.com) is implemented
 but UNVERIFIED against the live API until a key + verified domain exist.
 
+LIVE-VERIFICATION-PENDING: real Claude key validation (spec 11) — the live smoke in
+`apps/api/src/ai-connection/claude-validator.test.ts` ("createAiSdkValidator (live)")
+is gated on `ANTHROPIC_API_KEY` and SKIPS in the default `pnpm test`. CI mocks the
+provider; the error->category mapping (`categorizeProviderError`) is fully unit-tested
+with synthetic `APICallError`/abort instances. The real `createAiSdkValidator`
+(Vercel AI SDK + `@ai-sdk/anthropic`, one minimal completion, bounded timeout) is
+implemented but UNVERIFIED against the live Anthropic API until a BYO key is supplied.
+
 ---
 
 ## Blocked / build-halted
