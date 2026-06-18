@@ -8,6 +8,11 @@
 const API_BASE: string =
   (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001';
 
+/** Absolute URL for an API path — used by the streaming client (a raw fetch, not `apiFetch`). */
+export function apiUrl(path: string): string {
+  return `${API_BASE}${path}`;
+}
+
 export class ApiError extends Error {
   readonly status: number;
   readonly body: unknown;
@@ -20,7 +25,7 @@ export class ApiError extends Error {
 }
 
 export interface ApiRequestOptions {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   signal?: AbortSignal;
 }
