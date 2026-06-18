@@ -20,7 +20,7 @@ export class ApiError extends Error {
 }
 
 export interface ApiRequestOptions {
-  method?: 'GET' | 'POST';
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   body?: unknown;
   signal?: AbortSignal;
 }
