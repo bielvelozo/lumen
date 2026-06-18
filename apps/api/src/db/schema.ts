@@ -228,7 +228,11 @@ export const aiConnections = pgTable(
     createdAt: tz('created_at').notNull().defaultNow(),
     updatedAt: tz('updated_at').notNull().defaultNow(),
   },
-  (table) => [index('idx_aiconn_org').on(table.orgId)],
+  (table) => [
+    index('idx_aiconn_org').on(table.orgId),
+    // One AI connection per org (v1) — lets the app upsert by org and blocks a second row.
+    unique('uq_aiconn_org').on(table.orgId),
+  ],
 );
 
 // ---------------------------------------------------------------------------

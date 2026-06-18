@@ -108,8 +108,10 @@ describe('schema: v1 single-connection uniqueness', () => {
     expect(uniques).toHaveLength(1);
     expect(uniques[0]?.columns.map((c) => c.name)).toEqual(['org_id']);
   });
-  it('ai_connections still has no org-level unique constraint (spec 11 enables its own)', () => {
-    expect(getTableConfig(aiConnections).uniqueConstraints).toHaveLength(0);
+  it('ai_connections has the uq_aiconn_org unique on org_id (one AI connection per org — spec 11)', () => {
+    const uniques = getTableConfig(aiConnections).uniqueConstraints;
+    expect(uniques).toHaveLength(1);
+    expect(uniques[0]?.columns.map((c) => c.name)).toEqual(['org_id']);
   });
   it('exposed_tables keeps its composite unique', () => {
     expect(getTableConfig(exposedTables).uniqueConstraints).toHaveLength(1);

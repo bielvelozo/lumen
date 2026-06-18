@@ -73,3 +73,15 @@ export const aiConnectStateSchema = z.object({
 });
 
 export type AiConnectState = z.infer<typeof aiConnectStateSchema>;
+
+/**
+ * The `PUT /ai-connection` response. Always 200 for a well-formed request: `error` carries the
+ * sanitized category when validation failed (so the UI can show it even when nothing was
+ * persisted — e.g. a first-time bad key), and `state` reflects what is actually stored.
+ */
+export const aiConnectResultSchema = z.object({
+  state: aiConnectStateSchema,
+  error: z.enum(AI_CONNECT_ERROR_CATEGORIES).nullable(),
+});
+
+export type AiConnectResult = z.infer<typeof aiConnectResultSchema>;

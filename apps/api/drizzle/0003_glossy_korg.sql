@@ -1,0 +1,1 @@
+ALTER TABLE "ai_connections" ADD CONSTRAINT "uq_aiconn_org" UNIQUE("org_id");
