@@ -2,10 +2,13 @@ import type { Env } from '@lumen/shared';
 import { buildApp } from './app';
 import { loadEnv } from './env';
 import { makeDb } from './db/client';
-import { hashPassword } from './crypto';
+import { hashPassword, generateToken, hashToken } from './crypto';
 import { createSignupService } from './auth/signup.service';
 import { makeDrizzleSignupStore } from './auth/signup.store';
-import { noopVerificationTrigger } from './auth/verification-trigger';
+import { createVerificationService } from './auth/verification.service';
+import { makeDrizzleVerificationStore } from './auth/verification.store';
+import { makeEmailSender } from './auth/email-sender';
+import { createInMemoryRateLimiter } from './auth/rate-limiter';
 
 // Validate the environment first — fail fast with a readable message, never a deep
 // stack trace, if a required var is missing or malformed.
@@ -20,15 +23,25 @@ try {
 // Wire the real dependencies from validated env. The pg pool connects lazily, so this
 // does not require a live DB at construction time.
 const { db } = makeDb(env.DATABASE_URL);
+
+// Email verification (spec 04). The verification service doubles as signup's
+// VerificationTrigger, so the real issue-on-signup flow replaces the spec-03 no-op.
+const verificationService = createVerificationService({
+  store: makeDrizzleVerificationStore(db),
+  emailSender: makeEmailSender(env),
+  rateLimiter: createInMemoryRateLimiter({ limit: 3, windowMs: 60 * 60 * 1000 }),
+  generateToken,
+  hashToken,
+  appUrl: env.APP_URL,
+});
+
 const signupService = createSignupService({
   store: makeDrizzleSignupStore(db),
   hashPassword,
-  // Spec 04 swaps in the Resend-backed trigger; until then signup commits the tenant
-  // and the no-op trigger keeps the seam in place.
-  verificationTrigger: noopVerificationTrigger,
+  verificationTrigger: verificationService,
 });
 
-const app = buildApp({ signupService });
+const app = buildApp({ signupService, verificationService });
 
 app
   .listen({ port: env.PORT, host: '0.0.0.0' })

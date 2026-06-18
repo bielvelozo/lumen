@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { signupRequestSchema } from '@lumen/shared';
 import type { SignupService } from './signup.service';
+import { validationErrorBody } from './http-validation';
 
 /**
  * Register `POST /auth/signup` (unauthenticated). Validates the body against the shared
@@ -13,18 +14,7 @@ export function registerSignupRoute(app: FastifyInstance, service: SignupService
   app.post('/auth/signup', async (request, reply) => {
     const parsed = signupRequestSchema.safeParse(request.body);
     if (!parsed.success) {
-      const flat = parsed.error.flatten();
-      const fields: Record<string, string> = {};
-      for (const [key, messages] of Object.entries(flat.fieldErrors)) {
-        const first = messages?.[0];
-        if (first) fields[key] = first;
-      }
-      return reply.code(400).send({
-        error: 'ValidationError',
-        fields,
-        // Non-field issues (e.g. unknown keys from .strict()).
-        formErrors: flat.formErrors,
-      });
+      return reply.code(400).send(validationErrorBody(parsed.error));
     }
 
     const response = await service.signup(parsed.data);

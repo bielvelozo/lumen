@@ -2,6 +2,8 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import type { HealthResponse } from '@lumen/shared';
 import type { SignupService } from './auth/signup.service';
 import { registerSignupRoute } from './auth/signup.route';
+import type { VerificationService } from './auth/verification.service';
+import { registerVerificationRoutes } from './auth/verification.route';
 
 /**
  * Dependencies injected into the app. Optional so `/health` (and the existing
@@ -11,6 +13,7 @@ import { registerSignupRoute } from './auth/signup.route';
  */
 export interface AppDeps {
   signupService?: SignupService;
+  verificationService?: VerificationService;
 }
 
 /**
@@ -27,6 +30,10 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
 
   if (deps.signupService) {
     registerSignupRoute(app, deps.signupService);
+  }
+
+  if (deps.verificationService) {
+    registerVerificationRoutes(app, deps.verificationService);
   }
 
   return app;
