@@ -1,0 +1,77 @@
+/**
+ * Auth request/response contracts shared across the API/web boundary (spec 03 signup;
+ * later consumed by spec 06's form, single source of truth). Types/Zod only — no Node
+ * crypto or DB access here.
+ */
+import { z } from 'zod';
+
+/** Minimum password length (spec 03 open-question default; recorded in DECISIONS.md). */
+export const PASSWORD_MIN_LENGTH = 8;
+
+/**
+ * A small denylist of the most common >=8-char passwords (compared case-insensitively).
+ * Intentionally minimal — UX over heavy composition rules. Shorter common passwords are
+ * already rejected by the length check. Extend as needed; do not turn into a megabyte list.
+ */
+export const COMMON_PASSWORD_DENYLIST: ReadonlySet<string> = new Set([
+  'password',
+  'password1',
+  'password123',
+  'passw0rd',
+  '12345678',
+  '123456789',
+  '1234567890',
+  'qwerty123',
+  'qwertyuiop',
+  'iloveyou',
+  'admin123',
+  'letmein1',
+  'welcome1',
+  'sunshine',
+  'football',
+  'baseball',
+  'abcd1234',
+  '11111111',
+  '00000000',
+]);
+
+/**
+ * `POST /auth/signup` request. `.strict()` rejects unknown fields (anti-IDOR boundary:
+ * the endpoint mints `org_id` server-side and never accepts one). `email` is trimmed +
+ * lowercased so case/whitespace variants can't bypass the UNIQUE constraint; the
+ * password is left verbatim (spaces may be intentional) and only length/denylist-checked;
+ * `organizationName` is trimmed and length-bounded.
+ */
+export const signupRequestSchema = z
+  .object({
+    email: z.string().trim().toLowerCase().email('A valid email is required'),
+    password: z
+      .string()
+      .min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`)
+      .max(200, 'Password is too long')
+      .refine((value) => !COMMON_PASSWORD_DENYLIST.has(value.toLowerCase()), {
+        message: 'Password is too common — choose a less guessable one',
+      }),
+    organizationName: z
+      .string()
+      .trim()
+      .min(1, 'Organization name is required')
+      .max(120, 'Organization name is too long'),
+  })
+  .strict();
+
+/** Normalized signup input (post-transform) — what the API works with. */
+export type SignupRequest = z.infer<typeof signupRequestSchema>;
+/** Raw signup input (pre-transform) — what a form/client sends. */
+export type SignupRequestInput = z.input<typeof signupRequestSchema>;
+
+/**
+ * `POST /auth/signup` response. Deliberately minimal and non-identifying: never returns
+ * `org_id`, `user_id`, or a session. The same body is returned for a fresh signup and a
+ * duplicate email (anti-enumeration).
+ */
+export const signupResponseSchema = z.object({
+  message: z.string(),
+});
+
+export type SignupResponse = z.infer<typeof signupResponseSchema>;
