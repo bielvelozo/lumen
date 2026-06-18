@@ -6,3 +6,4 @@ export * from './auth-contracts';
 export * from './consent-contracts';
 export * from './connection-contracts';
 export * from './introspection-contracts';
+export * from './ai-contracts';
