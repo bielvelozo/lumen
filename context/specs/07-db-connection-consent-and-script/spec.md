@@ -1,8 +1,8 @@
 ---
-status: draft
+status: shipped
 feature: db-connection-consent-and-script
 created: 2026-06-17
-shipped: null
+shipped: 2026-06-18
 ---
 # DB Connection — Consent & Onboarding Script — Spec
 

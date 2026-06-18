@@ -32,7 +32,7 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
 - **Shipped** — [[../specs/06-web-shell-and-auth-ui/spec|06 · Web shell & auth UI]] — port the design system into `apps/web`; AppBackground, theme toggle, router, TanStack Query, auth pages, protected-route guard. _Deps: 00, 03, 04, 05._
 
 ### Phase 2 — Connect the client DB (MySQL)
-- **In progress** — [[../specs/07-db-connection-consent-and-script/spec|07 · Consent & onboarding script]] — terms/consent capture; generate the read-only onboarding SQL script for the customer. _Deps: 05, 06._
+- **Shipped** — [[../specs/07-db-connection-consent-and-script/spec|07 · Consent & onboarding script]] — terms/consent capture; generate the read-only onboarding SQL script for the customer. _Deps: 05, 06._
 - **Planned** — [[../specs/08-db-connection-create-and-test/spec|08 · Create & test connection]] — create `db_connections`; encrypt password; live MySQL connection test; `status` (pending/active/failed) + sanitized `last_error`; read-only/least-privilege checks. _Deps: 02, 07._
 - **Planned** — [[../specs/09-introspection-and-exposure/spec|09 · Introspection & exposure]] — introspect tables/columns/FKs; owner approves `exposed_tables` + `exposed_relationships` (allow-list). _Deps: 08._
 - **Planned** — [[../specs/10-connect-db-ui/spec|10 · Connect-DB UI]] — frontend for the full connect-DB flow (consent → script → credentials → test → choose tables/relationships → status). _Deps: 06, 07, 08, 09._
@@ -77,6 +77,17 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
   best-effort post-commit via a `VerificationTrigger` seam (spec 04 fills it). Service
   + route unit tests; live store integration (atomic tx + UNIQUE rollback) ran green vs
   Docker Postgres. All gates green.
+- **07 · Consent & onboarding script** — shipped 2026-06-18. Flow-2 gate 1 (backend;
+  UI is spec 10). Resolved the consent-before-credential tension as **Option B**: a new
+  `db_connection_consents` table (migration `0001`, the 12th) holds durable, versioned,
+  org-scoped consent without a placeholder secret (`encrypted_password NOT NULL` intact);
+  spec 08 will gate on it. Endpoints (all requireAuth, org/user from the JWT only):
+  `GET/POST /db-connection/consent` (accept rejects a stale version → 409),
+  `GET …/consent/terms`, `POST …/onboarding-script`. The script generator is read-only
+  BY CONSTRUCTION (`CREATE USER` + `GRANT SELECT` + `FLUSH PRIVILEGES` only; deny-list
+  test rejects broader privilege/DDL/root; identifiers validated `^[A-Za-z0-9_]+$`; no
+  password ever generated/stored). 19 unit tests + live consent-store integration green
+  vs Docker Postgres. Not Gate-1 flagged.
 - **06 · Web shell & auth UI** — shipped 2026-06-18. `apps/web` is now a themed,
   authenticated SPA: design system ported to typed `ui.tsx` (`ThemeProvider` owns theme,
   pre-paint script, app-owned CSS imported once, `AppBackground` at root); React Router

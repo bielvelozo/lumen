@@ -221,12 +221,31 @@ on settle); reset validates the shared `passwordPolicySchema`. Recorded as a kno
 gap — these two screens will 404 in production until a backend slice adds the routes.
 
 ### 07-08-consent | consent vs `encrypted_password NOT NULL`
-2026-06-17 — `[CONFIRM-WITH-HUMAN]` Default: **Option B** — a lightweight
-`db_connection_consents` table (`org_id`, `consent_version`, `accepted_at`,
-`accepted_by`) written in spec 07; spec 08 reads/gates on it and copies the fields
-into `db_connections` on insert. Keeps 07 independently persistable+testable and
-keeps `encrypted_password NOT NULL` intact (Option A would make 07's own Success
-Criteria unsatisfiable). Flagged for human review.
+2026-06-18 — `[CONFIRM-WITH-HUMAN]` `RESOLVED:` IMPLEMENTED in spec 07 as **Option B** —
+a lightweight `db_connection_consents` table (`id`, `org_id` FK cascade,
+`consent_version`, `accepted_at`, `accepted_by` FK cascade, `created_at`;
+`unique(org_id, consent_version)`) added via migration `0001` (the 12th table). Spec 07
+writes it; spec 08 will read/gate on it (`consentService.hasCurrentConsent`) and copy the
+fields into the `db_connections` row on insert. Keeps 07 independently persistable +
+testable and `encrypted_password NOT NULL` intact; NO placeholder secret written.
+Still flagged for human review of the modeling choice.
+
+### 07-consent | terms text source + version gating
+2026-06-18 — Default taken: terms are a **versioned constant in `packages/shared`**
+(`CONSENT_TERMS` + `CURRENT_CONSENT_VERSION='1'`, 4 scope points), so the accepted
+version maps deterministically to exact text. Accept requires the client-sent
+`consentVersion === CURRENT` else `409` (terms changed → re-fetch). Gating = a
+current-version row for the org. anti-IDOR: org/user from the JWT only (body is
+`.strict()`, no org_id). Not security-weakening.
+
+### 07-script | MySQL host scope + REQUIRE SSL + identifier safety
+2026-06-18 — Defaults taken: generated `CREATE USER 'lumen_ro'@'%'` (any host) with a
+clear comment on restricting to the app's egress IP/CIDR (not pinned until spec 16);
+`REQUIRE SSL` included as a **commented, recommended** option (active only if
+`requireSsl:true`). The script is read-only BY CONSTRUCTION (only `CREATE USER` +
+`GRANT SELECT` + `FLUSH PRIVILEGES`; deny-list test enforces no broader privilege/DDL/
+root). username + databaseName validated to `^[A-Za-z0-9_]+$` (≤64) before embedding —
+no SQL injection into the generated script. No password is ever generated/received/stored.
 
 ### 08-connection | over-privileged / root credential handling
 2026-06-17 — `[CONFIRM-WITH-HUMAN]` Default: **detect-and-REJECT**. At
@@ -283,6 +302,15 @@ Docker Postgres (throwaway `lumen_session_test` DB: migrate, then assert refresh
 persist ONLY the hash (raw never in the row), rotation revokes the old row + inserts a
 new one, replay of a rotated token is reuse_detected + revokes the whole family, and
 unknown/expired -> invalid). Re-confirm in the §7(2) final live gate.
+
+LIVE-VERIFICATION-PENDING: apps/api consent-store integration test
+(`src/db-connection/consent.store.integration.test.ts` -> "live: consent store") is
+gated on `DATABASE_URL`. SKIPS in the default `pnpm test`. Run GREEN on 2026-06-18
+against local Docker Postgres (throwaway `lumen_consent_test` DB: migrate incl. 0001,
+then assert consent is org-scoped, re-accepting the same version is idempotent
+(unique org+version), and a version bump returns the latest). The spec-01 migrate smoke
+(now 12 tables, incl. `db_connection_consents`) also ran green. Re-confirm in the
+§7(2) final live gate.
 
 LIVE-VERIFICATION-PENDING: cross-site cookie behavior (spec 05) — the
 `Secure`+`SameSite=None` auth cookies require HTTPS; over plain-HTTP local dev the

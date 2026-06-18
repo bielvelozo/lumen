@@ -17,6 +17,7 @@ Learnings here are specific to Business Assistant. Code style conventions live i
 - [[../learnings/org-id-only-from-requireauth-getauth|`org_id` comes ONLY from `getAuth(request)` — the single anti-IDOR seam]] — `requireAuth` verifies the JWT (alg pinned) and attaches `{ userId, orgId }`; every data-reading spec (08–14) scopes by `getAuth(request).orgId`, never client input (spec 05).
 - [[../learnings/auth-bootstrap-via-me-httponly-cookie|The SPA can't read the auth cookie — bootstrap from `GET /auth/me`]] — httpOnly cookie is invisible to JS; gate the tree on the `me` query (401→null), splash while pending; never send a tenant id (spec 06).
 - [[../learnings/glass-only-rtl-guard-test|Enforcing glass-only-on-chrome with an RTL guard test]] — assert no `.glass .card/.metric/.bubble` and `getByText(number).closest('.glass')` is null; required for specs 06/10/14 (spec 06).
+- [[../learnings/generated-sql-least-privilege-by-construction|The onboarding script is least-privilege BY CONSTRUCTION]] — only emit `CREATE USER`+`GRANT SELECT`+`FLUSH`; test allow+deny-list over comment-stripped SQL; validate embedded identifiers; spec 08 must still detect-and-reject root (spec 07).
 
 ## `#reference` — Environment and commands
 
