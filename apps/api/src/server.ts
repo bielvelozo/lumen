@@ -20,6 +20,9 @@ import { createMysqlConnectionTester } from './db-connection/connection-tester';
 import { makeDrizzleExposureStore } from './db-connection/exposure.store';
 import { createExposureService } from './db-connection/exposure.service';
 import { createMysqlSchemaIntrospector } from './db-connection/schema-introspector';
+import { makeDrizzleAiConnectionStore } from './ai-connection/ai-connection.store';
+import { createAiConnectionService } from './ai-connection/ai-connection.service';
+import { createAiSdkValidator } from './ai-connection/claude-validator';
 
 // Access token ~15 min; refresh 30 days (fixed lifetime, v1). See DECISIONS.md.
 const ACCESS_TTL_SECONDS = 15 * 60;
@@ -93,6 +96,15 @@ const exposureService = createExposureService({
   decrypt: crypto.decrypt,
 });
 
+// Connect the AI — Claude BYO key (spec 11). Validation uses the Vercel AI SDK; the same
+// crypto module encrypts the key at rest. The plaintext key never leaves the service scope.
+const aiConnectionService = createAiConnectionService({
+  store: makeDrizzleAiConnectionStore(db),
+  validator: createAiSdkValidator(),
+  encrypt: crypto.encrypt,
+  decrypt: crypto.decrypt,
+});
+
 const app = buildApp({
   signupService,
   verificationService,
@@ -103,6 +115,7 @@ const app = buildApp({
     refreshTtlSeconds: REFRESH_TTL_SECONDS,
   },
   dbConnection: { consentService, dbConnectionService, exposureService, accessTokenService },
+  aiConnection: { aiConnectionService, accessTokenService },
 });
 
 app

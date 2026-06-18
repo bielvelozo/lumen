@@ -15,6 +15,8 @@ import type { DbConnectionService } from './db-connection/db-connection.service'
 import { registerDbConnectionRoutes } from './db-connection/db-connection.route';
 import type { ExposureService } from './db-connection/exposure.service';
 import { registerExposureRoutes } from './db-connection/exposure.route';
+import type { AiConnectionService } from './ai-connection/ai-connection.service';
+import { registerAiConnectionRoutes } from './ai-connection/ai-connection.route';
 
 /**
  * Dependencies injected into the app. Optional so `/health` (and the existing
@@ -33,6 +35,11 @@ export interface AppDeps {
     dbConnectionService?: DbConnectionService;
     /** spec 09 introspection + exposure allow-list (optional until spec 09 wires it). */
     exposureService?: ExposureService;
+    accessTokenService: AccessTokenService;
+  };
+  /** AI-connection (Claude BYO key) routes (spec 11). `requireAuth` from the JWT. */
+  aiConnection?: {
+    aiConnectionService: AiConnectionService;
     accessTokenService: AccessTokenService;
   };
 }
@@ -59,7 +66,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
 
   // The cookie plugin must load ONCE, before any route/requireAuth that reads cookies.
   // Register it if any cookie-dependent feature is wired.
-  if (deps.auth || deps.dbConnection) {
+  if (deps.auth || deps.dbConnection || deps.aiConnection) {
     app.register(cookie);
   }
 
@@ -76,6 +83,11 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     if (deps.dbConnection.exposureService) {
       registerExposureRoutes(app, deps.dbConnection.exposureService, requireAuth);
     }
+  }
+
+  if (deps.aiConnection) {
+    const requireAuth = makeRequireAuth(deps.aiConnection.accessTokenService);
+    registerAiConnectionRoutes(app, deps.aiConnection.aiConnectionService, requireAuth);
   }
 
   return app;
