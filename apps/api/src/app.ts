@@ -1,6 +1,8 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import cookie from '@fastify/cookie';
 import type { HealthResponse } from '@lumen/shared';
+import { makeRequestId } from './observability/request-id';
+import { Sentry } from './observability/sentry';
 import type { SignupService } from './auth/signup.service';
 import { registerSignupRoute } from './auth/signup.route';
 import type { VerificationService } from './auth/verification.service';
@@ -56,7 +58,20 @@ export interface AppDeps {
  * (not auto-started) so tests can drive it via `app.inject` without binding a port.
  */
 export function buildApp(deps: AppDeps = {}): FastifyInstance {
-  const app = Fastify({ logger: false });
+  // `genReqId` gives every request an OPAQUE correlation id (no PII) — it rides `request.id`,
+  // becomes the Sentry tag, and is returned on errors so a user report maps to an event.
+  const app = Fastify({ logger: false, genReqId: makeRequestId });
+
+  // A sanitized last-resort error handler: report to Sentry (no-op when disabled) and return ONLY
+  // the opaque request id — never a stack trace or internal detail.
+  app.setErrorHandler((error, request, reply) => {
+    Sentry.captureException(error, (scope) => {
+      scope.setTag('request_id', String(request.id));
+      return scope;
+    });
+    reply.header('x-request-id', String(request.id));
+    return reply.code(500).send({ error: 'InternalError', requestId: request.id });
+  });
 
   app.get('/health', async (): Promise<HealthResponse> => {
     return { status: 'ok' };

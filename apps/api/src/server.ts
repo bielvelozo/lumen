@@ -1,6 +1,7 @@
 import type { Env } from '@lumen/shared';
 import { buildApp } from './app';
 import { loadEnv } from './env';
+import { initSentry } from './observability/sentry';
 import { makeDb } from './db/client';
 import { hashPassword, verifyPassword, generateToken, hashToken, createCryptoModule } from './crypto';
 import { createSignupService } from './auth/signup.service';
@@ -43,6 +44,11 @@ try {
   console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
 }
+
+// Observability (spec 15) — init BEFORE building the app so early errors are captured. No DSN
+// ⇒ disabled cleanly (local dev boots without Sentry). The scrubber strips secrets/PII/raw rows.
+const sentryEnabled = initSentry(env);
+console.log(sentryEnabled ? 'Sentry enabled' : 'Sentry disabled (no SENTRY_DSN)');
 
 // Wire the real dependencies from validated env. The pg pool connects lazily, so this
 // does not require a live DB at construction time.
