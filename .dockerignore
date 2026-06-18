@@ -1,0 +1,13 @@
+# Root build-context ignore (spec 16, Gate-1). The build context is the repo ROOT, so this file
+# is ALWAYS honored regardless of which Dockerfile is built — guaranteeing a developer's local
+# `.env` can NEVER enter even an intermediate build layer (the per-Dockerfile
+# apps/api/Dockerfile.dockerignore adds further, narrower exclusions).
+.env
+.env.*
+!.env.example
+**/node_modules
+**/dist
+**/.turbo
+**/*.tsbuildinfo
+.git
+.claude

@@ -480,9 +480,35 @@ the request-body wholesale drop (the main row ingress). `sendDefaultPii:false` k
 local vars off.
 
 ### 16-deploy | managed Postgres provider
-2026-06-17 — `[CONFIRM-WITH-HUMAN]` Default: pick one of **Neon / Supabase**; use
-the direct (non-pooled) URL for the migration step and a pooled URL for the app if
-needed. Final provider chosen at deploy time. Flagged for human review.
+2026-06-18 — `[CONFIRM-WITH-HUMAN]` Default lean: **Neon** (of Neon/Supabase); use the
+direct (non-pooled) URL for the migration step and a pooled URL for the app if needed;
+`sslmode=require`. Final provider chosen by the operator at deploy. Flagged for human review.
+
+### 16-deploy | other open-question defaults
+2026-06-18 — Defaults taken. Reverse proxy: **Caddy** (automatic HTTPS, least config;
+`deploy/Caddyfile`). CI provider: **GitHub Actions** on the pinned Node (`.nvmrc` 22) +
+pnpm 10.33.0, frozen lockfile, no prod secrets (`.github/workflows/ci.yml`). Pages previews:
+point at a **staging API** with its own `WEB_ORIGIN` allow-list; prod allow-lists only the prod
+Pages origin. Secrets manager: **host env + the documented inventory** in DEPLOY.md (contract:
+outside the DB, never committed). Deploy: committed **`docker-compose.prod.yml`** reading host env
+(reproducible). Master-key rotation: NOT a simple env swap — the versioned keyring (spec 02,
+per-blob `key_id`) supports a re-encryption pass; documented in DEPLOY.md.
+
+### 16-deploy | Gate-1 security-review result
+2026-06-18 — Gate 1 (security-review-before-merge) run on the spec-16 diff. All five invariants
+UPHELD, no HIGH: (1) CORS is `credentials:true` + an EXPLICIT env-driven `WEB_ORIGIN` allow-list
+(array form; off-list origin not reflected; never `*`/reflect-any) — hardened further by a Zod
+`.refine` that REJECTS a `*` in `WEB_ORIGIN` (fail-fast on operator misconfig); (2) secrets never
+in the image/repo (only `.env.example` tracked, blank; `loadEnv` reads `process.env`, no `.env`
+at runtime; compose pulls host env) — the one MEDIUM (a dev `.env` could enter an intermediate
+build layer if Docker ignored the per-Dockerfile ignore) RESOLVED by adding a ROOT `.dockerignore`
+that always applies; (3) image is non-root (`USER lumen`), pinned `node:22-bookworm-slim`, prod
+deps only (VERIFIED: no vitest/esbuild/tsx/drizzle-kit in the image), HEALTHCHECK + `read_only` +
+`no-new-privileges` + loopback bind; (4) cookie is `httpOnly; Secure; SameSite=None`, host-only
+(no `Domain=`), HTTPS-both-origins required (runbook); (5) CI uses `pull_request` (not
+`pull_request_target`), `permissions: contents:read`, no `secrets.*`. LOW deferrals (accepted v1):
+SHA-digest pinning the base image + GH Actions (tag-pinned today). Image-boot + migration-idempotency
+gates VERIFIED vs local Docker (see LIVE-VERIFICATION-PENDING entries).
 
 ---
 

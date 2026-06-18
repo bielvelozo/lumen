@@ -56,6 +56,13 @@ describe('parseEnv', () => {
     expect(() => parseEnv({ ...validEnv, JWT_SECRET: 'too-short' })).toThrow(/JWT_SECRET/);
   });
 
+  it('rejects a wildcard WEB_ORIGIN (CORS-with-credentials guard, spec 16)', () => {
+    expect(() => parseEnv({ ...validEnv, WEB_ORIGIN: '*' })).toThrow(/WEB_ORIGIN/);
+    expect(() => parseEnv({ ...validEnv, WEB_ORIGIN: 'https://app.x.com,*' })).toThrow(/WEB_ORIGIN/);
+    // an explicit comma-separated allow-list is fine
+    expect(parseEnv({ ...validEnv, WEB_ORIGIN: 'https://app.x.com,https://staging.x.com' }).WEB_ORIGIN).toContain('app.x.com');
+  });
+
   it('accepts a differently-shaped valid 32-byte base64 key', () => {
     // 32 bytes of 0xFF, standard base64 -> '/'*42 + '8='.
     const key = '/'.repeat(42) + '8=';

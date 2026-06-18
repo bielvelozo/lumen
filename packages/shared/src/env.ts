@@ -52,9 +52,16 @@ export const envSchema = z.object({
   // `{APP_URL}/verify-email?token=...` (spec 04). Defaults to the Vite dev server.
   APP_URL: z.string().url('APP_URL must be a valid URL').default('http://localhost:5173'),
   // Cross-site CORS allow-list (spec 16): the production Pages origin(s) permitted to call the API
-  // WITH credentials. Comma-separated; NEVER `*` (the browser rejects `*` + credentials). Defaults
+  // WITH credentials. Comma-separated; NEVER `*` (the browser rejects `*` + credentials, and a
+  // wildcard would defeat the cross-site cookie's scoping). Fail-fast on a `*` misconfig. Defaults
   // to the local Vite dev origin so dev works without config.
-  WEB_ORIGIN: z.string().default('http://localhost:5173'),
+  WEB_ORIGIN: z
+    .string()
+    .default('http://localhost:5173')
+    .refine(
+      (v) => v.split(',').every((o) => o.trim() !== '*' && !o.trim().includes('*')),
+      { message: 'WEB_ORIGIN must be explicit origin(s), never `*` (CORS with credentials)' },
+    ),
 
   // Deferred external services — optional until their owning spec lands. Empty
   // string means "absent": the owning spec binds a fake and skips live tests.
