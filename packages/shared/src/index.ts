@@ -5,3 +5,4 @@ export * from './crypto-contracts';
 export * from './auth-contracts';
 export * from './consent-contracts';
 export * from './connection-contracts';
+export * from './introspection-contracts';
