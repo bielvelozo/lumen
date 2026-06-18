@@ -9,8 +9,13 @@ node_modules/
 dist/
 build/
 .cache/
+.turbo/
+*.tsbuildinfo
 
 # Secrets & local env (never commit — see constitution: secrets stay out of the repo)
 .env
 .env.*
 !.env.example
+
+# Ralph loop state (machine-local; created by /ralph-loop)
+.claude/ralph-loop.local.md
