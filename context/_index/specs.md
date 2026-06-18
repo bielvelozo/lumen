@@ -46,7 +46,7 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
 - **Shipped** — [[../specs/14-chat-ui/spec|14 · Chat UI]] — sessions list, streaming message render on solid surfaces (glass only on chrome/input), model switch. _Deps: 06, 13._
 
 ### Phase 5 — Observability & deploy
-- **Planned** — [[../specs/15-observability-sentry/spec|15 · Observability]] — Sentry (api + web); error/log sanitization that never carries raw customer data; `function_call_logs` audit view. _Deps: 13._
+- **In progress** — [[../specs/15-observability-sentry/spec|15 · Observability]] — Sentry (api + web); error/log sanitization that never carries raw customer data; `function_call_logs` audit view. _Deps: 13._
 - **Planned** — [[../specs/16-deploy/spec|16 · Deploy]] — Dockerfile for `apps/api`; Cloudflare Pages for `apps/web`; managed Postgres (Neon/Supabase); cross-site cookie/CORS config; CI basics. _Deps: all._
 
 ## Shipped
