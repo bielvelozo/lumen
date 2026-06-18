@@ -72,4 +72,4 @@ A box is checked ONLY after its slice is implemented AND committed.
 - [x] `pnpm lint` green
 - [x] `pnpm type-check` green (`tsc --noEmit`, strict)
 - [x] `pnpm test` green (>=1 Vitest test per package: shared 6, api 3, web 1)
-- [ ] Mark spec 00 Shipped (MOC token + frontmatter) — atomic final commit
+- [x] Mark spec 00 Shipped (MOC token + frontmatter) — atomic final commit

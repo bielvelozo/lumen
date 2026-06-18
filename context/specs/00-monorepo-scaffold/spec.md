@@ -1,8 +1,8 @@
 ---
-status: draft
+status: shipped
 feature: monorepo-scaffold
 created: 2026-06-17
-shipped: null
+shipped: 2026-06-17
 ---
 # Monorepo Scaffold — Spec
 

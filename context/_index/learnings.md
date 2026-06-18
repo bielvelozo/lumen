@@ -10,7 +10,7 @@ Learnings here are specific to Business Assistant. Code style conventions live i
 
 ## `#concept` — Architecture and patterns
 
-_No learnings yet. Add the first one when you discover something non-obvious._
+- [[../learnings/shared-package-consumed-as-ts-source|`@lumen/shared` is consumed as TS source (no build step)]] — JIT internal package: apps import its `src` directly; `tsc --noEmit` "no output files" turbo warning is expected (spec 00).
 
 ## `#reference` — Environment and commands
 
@@ -18,4 +18,5 @@ _No learnings yet. Add the first one when you discover something non-obvious._
 
 ## `#gotcha` — Things that tripped us up
 
+- [[../learnings/pnpm-blocks-dependency-build-scripts|pnpm 10 blocks dependency build scripts]] — `Ignored build scripts: esbuild` warning is actionable; allow-list via `pnpm.onlyBuiltDependencies` or Vite/Vitest/tsx break at runtime (spec 00).
 - [[../learnings/db-connection-consent-before-credential-tension|`db_connections` can't hold consent before a credential exists]] — consent and `encrypted_password NOT NULL` share one row, so "save consent first" needs a modeling decision (affects specs 07/08/10).
