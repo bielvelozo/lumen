@@ -19,3 +19,8 @@ export function quoteIdent(name: string): string {
   if (!SAFE_IDENT.test(name)) throw new UnsafeIdentifierError();
   return `\`${name.replace(/`/g, '``')}\``;
 }
+
+/** A table-qualified column reference (`table`.`column`), both parts asserted + escaped. */
+export function qualified(table: string, column: string): string {
+  return `${quoteIdent(table)}.${quoteIdent(column)}`;
+}

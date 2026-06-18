@@ -69,28 +69,36 @@ describe('guard — allow-list membership', () => {
     expect(r).toMatchObject({ ok: false, code: 'type_mismatch' });
   });
 
-  it('refuses a join not backed by an exposed relationship row (no ad-hoc JOIN)', () => {
+  it('refuses a join whose NAME is not an exposed relationship (no ad-hoc JOIN)', () => {
     const r = guard(
       {
         tables: ['orders', 'order_items'],
         columns: [],
-        relationships: [
-          { name: 'fake', fromTable: 'order_items', fromColumn: 'order_id', toTable: 'orders', toColumn: 'total' },
-        ],
+        relationships: [{ name: 'fake', tableA: 'order_items', tableB: 'orders' }],
       },
       allowList,
     );
     expect(r).toMatchObject({ ok: false, code: 'relationship_not_exposed' });
   });
 
-  it('passes an exact-matching exposed relationship', () => {
+  it('refuses an exposed name that connects the WRONG tables', () => {
+    const r = guard(
+      {
+        tables: ['order_items'],
+        columns: [],
+        relationships: [{ name: 'order_items__order_id__orders', tableA: 'order_items', tableB: 'salaries' }],
+      },
+      allowList,
+    );
+    expect(r).toMatchObject({ ok: false, code: 'relationship_not_exposed' });
+  });
+
+  it('passes an exposed relationship connecting the named table pair', () => {
     const r = guard(
       {
         tables: ['order_items', 'orders'],
         columns: [],
-        relationships: [
-          { name: 'order_items__order_id__orders', fromTable: 'order_items', fromColumn: 'order_id', toTable: 'orders', toColumn: 'id' },
-        ],
+        relationships: [{ name: 'order_items__order_id__orders', tableA: 'orders', tableB: 'order_items' }],
       },
       allowList,
     );

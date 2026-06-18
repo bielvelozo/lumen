@@ -11,13 +11,15 @@ export interface ColumnNeed {
   family?: TypeFamily;
 }
 
-/** A join a function needs — must match an exposed relationship EXACTLY (never an ad-hoc JOIN). */
+/**
+ * A join a function needs — must match an exposed relationship BY NAME that connects exactly
+ * the named table pair (orientation-independent). The build step then takes the join COLUMNS
+ * only from that matched row, never from model text — so no ad-hoc JOIN is possible.
+ */
 export interface RelationshipNeed {
   name: string;
-  fromTable: string;
-  fromColumn: string;
-  toTable: string;
-  toColumn: string;
+  tableA: string;
+  tableB: string;
 }
 
 /**
@@ -67,13 +69,13 @@ export function guard(manifest: NeedManifest, allowList: ExposedAllowList): Guar
   }
 
   for (const rel of manifest.relationships) {
+    const pair = new Set([rel.tableA, rel.tableB]);
     const match = allowList.relationships.find(
       (er) =>
         er.name === rel.name &&
-        er.fromTable === rel.fromTable &&
-        er.fromColumn === rel.fromColumn &&
-        er.toTable === rel.toTable &&
-        er.toColumn === rel.toColumn,
+        pair.size === 2 &&
+        pair.has(er.fromTable) &&
+        pair.has(er.toTable),
     );
     if (!match) {
       return {
