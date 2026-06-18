@@ -7,6 +7,10 @@ import type { VerificationService } from './auth/verification.service';
 import { registerVerificationRoutes } from './auth/verification.route';
 import type { AuthRouteDeps } from './auth/auth.route';
 import { registerAuthRoutes } from './auth/auth.route';
+import type { AccessTokenService } from './auth/jwt';
+import { makeRequireAuth } from './auth/require-auth';
+import type { ConsentService } from './db-connection/consent.service';
+import { registerConsentRoutes } from './db-connection/consent.route';
 
 /**
  * Dependencies injected into the app. Optional so `/health` (and the existing
@@ -18,6 +22,8 @@ export interface AppDeps {
   signupService?: SignupService;
   verificationService?: VerificationService;
   auth?: AuthRouteDeps;
+  /** DB-connection consent + onboarding-script routes (spec 07). `requireAuth` from the JWT. */
+  dbConnection?: { consentService: ConsentService; accessTokenService: AccessTokenService };
 }
 
 /**
@@ -40,10 +46,19 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     registerVerificationRoutes(app, deps.verificationService);
   }
 
-  if (deps.auth) {
-    // Cookie plugin must load before the auth routes / requireAuth read or set cookies.
+  // The cookie plugin must load ONCE, before any route/requireAuth that reads cookies.
+  // Register it if any cookie-dependent feature is wired.
+  if (deps.auth || deps.dbConnection) {
     app.register(cookie);
+  }
+
+  if (deps.auth) {
     registerAuthRoutes(app, deps.auth);
+  }
+
+  if (deps.dbConnection) {
+    const requireAuth = makeRequireAuth(deps.dbConnection.accessTokenService);
+    registerConsentRoutes(app, deps.dbConnection.consentService, requireAuth);
   }
 
   return app;

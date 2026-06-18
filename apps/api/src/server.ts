@@ -12,6 +12,8 @@ import { createInMemoryRateLimiter } from './auth/rate-limiter';
 import { createAccessTokenService } from './auth/jwt';
 import { makeDrizzleSessionStore } from './auth/session.store';
 import { createAuthService } from './auth/auth.service';
+import { makeDrizzleConsentStore } from './db-connection/consent.store';
+import { createConsentService } from './db-connection/consent.service';
 
 // Access token ~15 min; refresh 30 days (fixed lifetime, v1). See DECISIONS.md.
 const ACCESS_TTL_SECONDS = 15 * 60;
@@ -65,6 +67,9 @@ const authService = createAuthService({
   refreshTtlMs: REFRESH_TTL_SECONDS * 1000,
 });
 
+// DB-connection consent + onboarding script (spec 07).
+const consentService = createConsentService(makeDrizzleConsentStore(db));
+
 const app = buildApp({
   signupService,
   verificationService,
@@ -74,6 +79,7 @@ const app = buildApp({
     accessTtlSeconds: ACCESS_TTL_SECONDS,
     refreshTtlSeconds: REFRESH_TTL_SECONDS,
   },
+  dbConnection: { consentService, accessTokenService },
 });
 
 app
