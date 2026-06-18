@@ -75,3 +75,54 @@ export const signupResponseSchema = z.object({
 });
 
 export type SignupResponse = z.infer<typeof signupResponseSchema>;
+
+// ---------------------------------------------------------------------------
+// Email verification (spec 04)
+// ---------------------------------------------------------------------------
+
+/**
+ * `POST /auth/verify-email` request. The opaque raw token from the email link — the ONLY
+ * thing the client sends. `.strict()` rejects a client-supplied `user_id`/token id
+ * (anti-IDOR): the user to flip is derived server-side from the hash-matched row.
+ */
+export const verifyEmailRequestSchema = z
+  .object({
+    token: z.string().min(1, 'A verification token is required'),
+  })
+  .strict();
+
+export type VerifyEmailRequest = z.infer<typeof verifyEmailRequestSchema>;
+
+/**
+ * Outcome of a verify attempt. `verified` (happy), `already_verified` (benign double-click),
+ * `invalid` (unknown/expired/used/garbage — all collapsed so nothing is leaked, never a 500).
+ */
+export const verifyEmailResponseSchema = z.object({
+  status: z.enum(['verified', 'already_verified', 'invalid']),
+});
+
+export type VerifyEmailStatus = VerifyEmailResponse['status'];
+export type VerifyEmailResponse = z.infer<typeof verifyEmailResponseSchema>;
+
+/**
+ * `POST /auth/resend-verification` request. Email is trimmed + lowercased (same
+ * normalization as signup). `.strict()` rejects unknown fields.
+ */
+export const resendVerificationRequestSchema = z
+  .object({
+    email: z.string().trim().toLowerCase().email('A valid email is required'),
+  })
+  .strict();
+
+export type ResendVerificationRequest = z.infer<typeof resendVerificationRequestSchema>;
+
+/**
+ * `POST /auth/resend-verification` response. ALWAYS the same generic body — for an
+ * existing-unverified, an already-verified, AND a non-existent email — so the endpoint
+ * never reveals account existence or verification state (anti-enumeration).
+ */
+export const resendVerificationResponseSchema = z.object({
+  message: z.string(),
+});
+
+export type ResendVerificationResponse = z.infer<typeof resendVerificationResponseSchema>;

@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { signupRequestSchema, PASSWORD_MIN_LENGTH } from './auth-contracts';
+import {
+  signupRequestSchema,
+  PASSWORD_MIN_LENGTH,
+  verifyEmailRequestSchema,
+  resendVerificationRequestSchema,
+} from './auth-contracts';
 
 const valid = {
   email: 'Owner@Example.com',
@@ -47,5 +52,33 @@ describe('signupRequestSchema', () => {
   it('accepts valid normalized input', () => {
     const r = signupRequestSchema.safeParse(valid);
     expect(r.success).toBe(true);
+  });
+});
+
+describe('verifyEmailRequestSchema', () => {
+  it('accepts a non-empty token', () => {
+    expect(verifyEmailRequestSchema.safeParse({ token: 'abc123' }).success).toBe(true);
+  });
+  it('rejects an empty/missing token', () => {
+    expect(verifyEmailRequestSchema.safeParse({ token: '' }).success).toBe(false);
+    expect(verifyEmailRequestSchema.safeParse({}).success).toBe(false);
+  });
+  it('rejects unknown fields (.strict) — e.g. a client-supplied user_id', () => {
+    expect(verifyEmailRequestSchema.safeParse({ token: 'x', user_id: 'u' }).success).toBe(false);
+  });
+});
+
+describe('resendVerificationRequestSchema', () => {
+  it('normalizes email (trim + lowercase)', () => {
+    const r = resendVerificationRequestSchema.parse({ email: '  Owner@Example.com ' });
+    expect(r.email).toBe('owner@example.com');
+  });
+  it('rejects an invalid email', () => {
+    expect(resendVerificationRequestSchema.safeParse({ email: 'nope' }).success).toBe(false);
+  });
+  it('rejects unknown fields (.strict)', () => {
+    expect(
+      resendVerificationRequestSchema.safeParse({ email: 'a@b.com', evil: 1 }).success,
+    ).toBe(false);
   });
 });

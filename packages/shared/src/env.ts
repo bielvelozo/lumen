@@ -43,9 +43,17 @@ export const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3001),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 
+  // Public base URL of the SPA — used to build the email-verification link
+  // `{APP_URL}/verify-email?token=...` (spec 04). Defaults to the Vite dev server.
+  APP_URL: z.string().url('APP_URL must be a valid URL').default('http://localhost:5173'),
+
   // Deferred external services — optional until their owning spec lands. Empty
   // string means "absent": the owning spec binds a fake and skips live tests.
   RESEND_API_KEY: z.string().default(''),
+  // Sender identity for transactional email (spec 04). `onboarding@resend.dev` is
+  // Resend's shared sandbox sender; a verified custom domain is a deploy-time (spec 16)
+  // human/DNS step.
+  RESEND_FROM_EMAIL: z.string().default('Lumen <onboarding@resend.dev>'),
   ANTHROPIC_API_KEY: z.string().default(''),
   SENTRY_DSN: z.string().default(''),
 });
