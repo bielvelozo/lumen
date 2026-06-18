@@ -35,4 +35,29 @@ describe('analyzeGrants', () => {
       analyzeGrants(["GRANT SELECT ON `insert_logs`.* TO `lumen_ro`@`%`"]).overPrivileged,
     ).toBe(false);
   });
+
+  it('flags MySQL 8 dynamic/admin privileges (denylist would miss these)', () => {
+    // SELECT line looks read-only, but the dynamic-privilege line is administrative.
+    expect(
+      analyzeGrants([
+        "GRANT SELECT ON *.* TO `x`@`%`",
+        "GRANT BACKUP_ADMIN,SYSTEM_USER,CONNECTION_ADMIN ON *.* TO `x`@`%`",
+      ]).overPrivileged,
+    ).toBe(true);
+    expect(analyzeGrants(["GRANT PROXY ON ''@'' TO `x`@`%`"]).overPrivileged).toBe(true);
+  });
+
+  it('accepts a column-scoped SELECT but still catches a column-scoped write', () => {
+    expect(
+      analyzeGrants(["GRANT SELECT (id, name) ON `shop`.`orders` TO `ro`@`%`"]).overPrivileged,
+    ).toBe(false);
+    expect(
+      analyzeGrants(["GRANT SELECT (id), INSERT (note) ON `shop`.`orders` TO `rw`@`%`"])
+        .overPrivileged,
+    ).toBe(true);
+  });
+
+  it('a line that is not a GRANT ... ON ... is rejected (fail-safe)', () => {
+    expect(analyzeGrants(['GRANT `app_role` TO `x`@`%`']).overPrivileged).toBe(true);
+  });
 });

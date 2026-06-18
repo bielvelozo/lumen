@@ -1,39 +1,15 @@
 /**
  * Parse `SHOW GRANTS FOR CURRENT_USER()` output to decide whether the credential is
- * over-privileged (spec 08, defense-in-depth on invariant 5). Read-only by intent means the
- * only privilege is `SELECT` (plus harmless `USAGE`). Anything that can write, do DDL, or
- * administer — or `WITH GRANT OPTION` / `ALL PRIVILEGES` — makes the credential
- * over-privileged, which spec 08 REJECTS (never stores).
+ * over-privileged (spec 08, defense-in-depth on invariant 5). DENY-BY-ALLOWLIST: a grant is
+ * over-privileged unless EVERY privilege token in its privilege list is read-only-safe
+ * (`SELECT`, `USAGE`, `SHOW VIEW`). This structurally rejects every present and future
+ * write/DDL/admin privilege — including MySQL 8 dynamic privileges (`SYSTEM_USER`,
+ * `BACKUP_ADMIN`, `CONNECTION_ADMIN`, …), `ALL PRIVILEGES`, `PROXY`, and `GRANT OPTION` —
+ * rather than chasing an open-ended denylist (Gate-1 security-review fix).
  */
 
-/** Privilege tokens that mark a write/DDL/admin (i.e. non-read-only) credential. */
-const FORBIDDEN_PRIVILEGES = [
-  'ALL PRIVILEGES',
-  'INSERT',
-  'UPDATE',
-  'DELETE',
-  'CREATE',
-  'DROP',
-  'ALTER',
-  'INDEX',
-  'REFERENCES',
-  'TRIGGER',
-  'EVENT',
-  'EXECUTE',
-  'LOCK TABLES',
-  'CREATE VIEW',
-  'CREATE ROUTINE',
-  'ALTER ROUTINE',
-  'CREATE USER',
-  'CREATE TABLESPACE',
-  'RELOAD',
-  'SHUTDOWN',
-  'PROCESS',
-  'FILE',
-  'SUPER',
-  'REPLICATION SLAVE',
-  'REPLICATION CLIENT',
-];
+/** The only privileges a read-only credential may hold. Anything else ⇒ over-privileged. */
+const SAFE_PRIVILEGES = new Set(['SELECT', 'USAGE', 'SHOW VIEW']);
 
 export interface GrantsAnalysis {
   overPrivileged: boolean;
@@ -41,13 +17,27 @@ export interface GrantsAnalysis {
 
 export function analyzeGrants(grants: readonly string[]): GrantsAnalysis {
   const overPrivileged = grants.some((grant) => {
-    const upper = grant.toUpperCase();
-    // `WITH GRANT OPTION` can appear after the object — check the whole statement.
+    const upper = grant.toUpperCase().trim();
+    // `WITH GRANT OPTION` lets the user grant privileges to others — never read-only.
     if (upper.includes('WITH GRANT OPTION')) return true;
-    // The privilege list is everything before ` ON `; checking only that avoids a
-    // false positive from a database/table named e.g. `insert_logs`.
-    const privilegeList = upper.split(' ON ')[0] ?? upper;
-    return FORBIDDEN_PRIVILEGES.some((priv) => privilegeList.includes(priv));
+
+    // The privilege list is everything before the first ` ON `.
+    const onIndex = upper.indexOf(' ON ');
+    if (onIndex === -1) return true; // not a `GRANT ... ON ...` line → reject (fail-safe)
+
+    let privilegeList = upper.slice(0, onIndex);
+    if (privilegeList.startsWith('GRANT ')) privilegeList = privilegeList.slice('GRANT '.length);
+    // Drop any column-level lists like `SELECT (col1, col2)` so column-scoped SELECT stays safe
+    // while column-scoped writes (e.g. `INSERT (col)`) are still caught by their keyword.
+    privilegeList = privilegeList.replace(/\([^)]*\)/g, '');
+
+    const tokens = privilegeList
+      .split(',')
+      .map((token) => token.trim())
+      .filter((token) => token.length > 0);
+
+    // Over-privileged if ANY granted privilege is not in the read-only safe set.
+    return tokens.some((token) => !SAFE_PRIVILEGES.has(token));
   });
   return { overPrivileged };
 }
