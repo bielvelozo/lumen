@@ -39,6 +39,9 @@ function makeDeps(opts: { ai?: StoredAiConnection | null; run?: ChatRunResult; a
       return { id: 'am-1' };
     }),
     recentMessages: vi.fn(async () => [{ role: 'user' as const, content: 'quanto vendi?' }]),
+    listSessions: vi.fn(async () => []),
+    getMessages: vi.fn(async () => []),
+    renameSession: vi.fn(async () => true),
   };
   const logStore: FunctionLogStore = { insert: vi.fn(async () => undefined) };
   const aiConnectionStore = {
@@ -89,6 +92,16 @@ describe('chat.service happy path', () => {
     const { sink } = collectingSink();
     const res = await createChatService(deps).sendMessage(INPUT, sink);
     expect(res).toMatchObject({ outcome: 'answered', model: 'claude-opus-4-8' });
+  });
+
+  it('honors a per-turn model override over the org default', async () => {
+    const { deps } = makeDeps();
+    const { sink } = collectingSink();
+    const res = await createChatService(deps).sendMessage(
+      { ...INPUT, modelOverride: 'claude-haiku-4-5' },
+      sink,
+    );
+    expect(res).toMatchObject({ outcome: 'answered', model: 'claude-haiku-4-5' });
   });
 
   it('the decrypted Claude key never appears in any persisted message', async () => {

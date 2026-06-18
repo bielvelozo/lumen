@@ -87,6 +87,9 @@ describe.skipIf(!process.env.MYSQL_URL)('live: chat end-to-end', () => {
         return { id: 'am' };
       },
       recentMessages: async () => [{ role: 'user', content: 'quanto vendi em maio?' }],
+      listSessions: async () => [],
+      getMessages: async () => [],
+      renameSession: async () => true,
     };
     const logStore: FunctionLogStore = { insert: async (row) => void logs.push(row) };
     const aiConnectionStore = {

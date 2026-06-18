@@ -1,5 +1,5 @@
-import { and, asc, eq, sql } from 'drizzle-orm';
-import type { MessageRole } from '@lumen/shared';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
+import type { ChatMessageDTO, ChatSessionSummary, MessageRole } from '@lumen/shared';
 import { chatSessions, messages } from '../db/schema';
 import type { Database } from '../db/client';
 
@@ -8,6 +8,12 @@ export interface ChatStore {
   createSession(input: { orgId: string; userId: string; title: string | null }): Promise<{ id: string }>;
   /** Ownership check: returns the session ONLY if it belongs to `orgId` (else null → 404). */
   getSessionForOrg(sessionId: string, orgId: string): Promise<{ id: string; title: string | null } | null>;
+  /** The caller's sessions, `updated_at` desc (org-scoped). */
+  listSessions(orgId: string): Promise<ChatSessionSummary[]>;
+  /** A session's full message history, `created_at` order (org-scoped — null if not the caller's). */
+  getMessages(sessionId: string, orgId: string): Promise<ChatMessageDTO[] | null>;
+  /** Rename a session (org-scoped). Returns false if it isn't the caller's (→ 404). */
+  renameSession(sessionId: string, orgId: string, title: string): Promise<boolean>;
   /** Bump `updated_at`; set `title` only if currently null (first message). Org-scoped. */
   touchSession(sessionId: string, orgId: string, title?: string): Promise<void>;
   insertUserMessage(input: { sessionId: string; orgId: string; content: string }): Promise<{ id: string }>;
@@ -42,6 +48,53 @@ export function makeDrizzleChatStore(db: Database): ChatStore {
         .where(and(eq(chatSessions.id, sessionId), eq(chatSessions.orgId, orgId)))
         .limit(1);
       return rows[0] ?? null;
+    },
+
+    async listSessions(orgId) {
+      const rows = await db
+        .select({ id: chatSessions.id, title: chatSessions.title, updatedAt: chatSessions.updatedAt })
+        .from(chatSessions)
+        .where(eq(chatSessions.orgId, orgId))
+        .orderBy(desc(chatSessions.updatedAt));
+      return rows.map((r) => ({ id: r.id, title: r.title, updatedAt: r.updatedAt.toISOString() }));
+    },
+
+    async getMessages(sessionId, orgId) {
+      // Ownership gate first — a session that isn't the caller's resolves to null (→ 404).
+      const owned = await db
+        .select({ id: chatSessions.id })
+        .from(chatSessions)
+        .where(and(eq(chatSessions.id, sessionId), eq(chatSessions.orgId, orgId)))
+        .limit(1);
+      if (!owned[0]) return null;
+      const rows = await db
+        .select({
+          id: messages.id,
+          role: messages.role,
+          content: messages.content,
+          model: messages.model,
+          createdAt: messages.createdAt,
+        })
+        .from(messages)
+        .where(and(eq(messages.sessionId, sessionId), eq(messages.orgId, orgId)))
+        .orderBy(asc(messages.createdAt));
+      return rows.map((r) => ({
+        id: r.id,
+        role: r.role,
+        content: r.content,
+        model: r.model,
+        createdAt: r.createdAt.toISOString(),
+      }));
+    },
+
+    async renameSession(sessionId, orgId, title) {
+      // Rename does NOT bump updated_at — the sidebar order stays unchanged (spec scenario 3).
+      const updated = await db
+        .update(chatSessions)
+        .set({ title })
+        .where(and(eq(chatSessions.id, sessionId), eq(chatSessions.orgId, orgId)))
+        .returning({ id: chatSessions.id });
+      return updated.length > 0;
     },
 
     async touchSession(sessionId, orgId, title) {

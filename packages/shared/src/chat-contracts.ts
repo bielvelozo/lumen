@@ -6,15 +6,31 @@
  * the JWT. The stream wire format below is the contract `apps/web` (spec 14) consumes.
  */
 import { z } from 'zod';
+import { aiModelSchema } from './ai-contracts';
 
-/** `POST /chat/sessions/:id/messages` (and the sessionless create variant) body — message only. */
+/**
+ * `POST /chat/sessions/:id/messages` body. `message` only, plus an OPTIONAL `model` override
+ * (a curated Claude id) the user picked in the switcher — the orchestrator uses it over the
+ * org default and records it on `messages.model`. `.strict()` still rejects a smuggled
+ * `org_id`/`session_id` (anti-IDOR).
+ */
 export const sendMessageRequestSchema = z
   .object({
     message: z.string().trim().min(1, 'Message is required').max(4000),
+    model: aiModelSchema.optional(),
   })
   .strict();
 
 export type SendMessageRequest = z.infer<typeof sendMessageRequestSchema>;
+
+/** `PATCH /chat/sessions/:id` body — rename only (no ids; org from the JWT). */
+export const renameSessionRequestSchema = z
+  .object({
+    title: z.string().trim().min(1, 'Title is required').max(120),
+  })
+  .strict();
+
+export type RenameSessionRequest = z.infer<typeof renameSessionRequestSchema>;
 
 /**
  * CLOSED set of sanitized, user-facing chat error codes. Each maps to a deterministic message;

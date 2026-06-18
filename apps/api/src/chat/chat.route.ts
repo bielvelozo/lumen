@@ -1,5 +1,5 @@
 import type { FastifyInstance, preHandlerHookHandler } from 'fastify';
-import { sendMessageRequestSchema, type ChatStreamEvent } from '@lumen/shared';
+import { sendMessageRequestSchema, renameSessionRequestSchema, type ChatStreamEvent } from '@lumen/shared';
 import { getAuth } from '../auth/require-auth';
 import { validationErrorBody } from '../auth/http-validation';
 import type { ChatService } from './chat.service';
@@ -28,6 +28,32 @@ export function registerChatRoutes(
     return reply.code(201).send({ id });
   });
 
+  // The caller's sessions, updated_at desc (org-scoped).
+  app.get('/chat/sessions', { preHandler: requireAuth }, async (request, reply) => {
+    const { orgId } = getAuth(request);
+    return reply.code(200).send(await deps.chatStore.listSessions(orgId));
+  });
+
+  // A session's message history. A session that isn't the caller's → 404 (no existence leak).
+  app.get('/chat/sessions/:sessionId/messages', { preHandler: requireAuth }, async (request, reply) => {
+    const { orgId } = getAuth(request);
+    const { sessionId } = request.params as { sessionId: string };
+    const history = await deps.chatStore.getMessages(sessionId, orgId);
+    if (history === null) return reply.code(404).send({ error: 'NotFound' });
+    return reply.code(200).send(history);
+  });
+
+  // Rename a session. A session that isn't the caller's → 404.
+  app.patch('/chat/sessions/:sessionId', { preHandler: requireAuth }, async (request, reply) => {
+    const parsed = renameSessionRequestSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send(validationErrorBody(parsed.error));
+    const { orgId } = getAuth(request);
+    const { sessionId } = request.params as { sessionId: string };
+    const ok = await deps.chatStore.renameSession(sessionId, orgId, parsed.data.title);
+    if (!ok) return reply.code(404).send({ error: 'NotFound' });
+    return reply.code(200).send({ ok: true });
+  });
+
   app.post('/chat/sessions/:sessionId/messages', { preHandler: requireAuth }, async (request, reply) => {
     const parsed = sendMessageRequestSchema.safeParse(request.body);
     if (!parsed.success) return reply.code(400).send(validationErrorBody(parsed.error));
@@ -53,7 +79,7 @@ export function registerChatRoutes(
 
     try {
       const outcome = await deps.service.sendMessage(
-        { orgId, userId, sessionId, message: parsed.data.message },
+        { orgId, userId, sessionId, message: parsed.data.message, modelOverride: parsed.data.model },
         { onTextDelta: (delta) => write({ type: 'text-delta', delta }) },
       );
       if (outcome.outcome === 'answered') {

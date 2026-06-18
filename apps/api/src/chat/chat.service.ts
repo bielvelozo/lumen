@@ -33,6 +33,8 @@ export interface SendMessageInput {
   /** A session already confirmed to belong to `orgId` (the route enforces ownership → 404). */
   sessionId: string;
   message: string;
+  /** A curated model the user picked in the switcher; overrides the org default for this turn. */
+  modelOverride?: ClaudeModelId;
 }
 
 export type SendMessageOutcome =
@@ -75,7 +77,8 @@ export function createChatService(deps: ChatServiceDeps): ChatService {
       const aiConn = await deps.aiConnectionStore.getByOrg(input.orgId);
       if (!aiConn || aiConn.status !== 'active') return fail('ai_not_connected');
       const apiKey = deps.decrypt(aiConn.encryptedApiKey);
-      const model = (aiConn.defaultModel as ClaudeModelId | null) ?? DEFAULT_MODEL;
+      // The user's per-turn switcher choice wins, then the org default, then the curated default.
+      const model = input.modelOverride ?? (aiConn.defaultModel as ClaudeModelId | null) ?? DEFAULT_MODEL;
 
       // Exposed tables (for the system prompt) — null when no DB connection; tools still refuse.
       const access = await deps.allowListAccessor.getByOrg(input.orgId);

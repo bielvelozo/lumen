@@ -29,6 +29,20 @@ function buildChatApp(opts: { sendMessage?: ChatService['sendMessage'] } = {}) {
     getSessionForOrg: vi.fn(async (sessionId: string, orgId: string) =>
       sessionId === OWNED && orgId === ORG ? { id: OWNED, title: null } : null,
     ),
+    listSessions: vi.fn(async (orgId: string) =>
+      orgId === ORG
+        ? [
+            { id: 's2', title: 'Vendas Q2', updatedAt: '2026-06-18T12:00:00.000Z' },
+            { id: 's1', title: 'Nova conversa', updatedAt: '2026-06-17T12:00:00.000Z' },
+          ]
+        : [],
+    ),
+    getMessages: vi.fn(async (sessionId: string, orgId: string) =>
+      sessionId === OWNED && orgId === ORG
+        ? [{ id: 'm1', role: 'user' as const, content: 'oi', model: null, createdAt: '2026-06-18T12:00:00.000Z' }]
+        : null,
+    ),
+    renameSession: vi.fn(async (sessionId: string, orgId: string) => sessionId === OWNED && orgId === ORG),
   } as unknown as ChatStore;
   const app = buildApp({ chat: { service, chatStore, accessTokenService: accessTokens } });
   return { app, sendMessage, chatStore };
@@ -52,6 +66,41 @@ describe('POST /chat/sessions', () => {
     const res = await app.inject({ method: 'POST', url: '/chat/sessions', cookies: await cookie() });
     expect(res.statusCode).toBe(201);
     expect(res.json()).toEqual({ id: 'new-session' });
+  });
+});
+
+describe('GET /chat/sessions', () => {
+  it('401s without auth; returns the caller\'s sessions (updated_at desc) otherwise', async () => {
+    const built = buildChatApp();
+    app = built.app;
+    expect((await app.inject({ method: 'GET', url: '/chat/sessions' })).statusCode).toBe(401);
+    const res = await app.inject({ method: 'GET', url: '/chat/sessions', cookies: await cookie() });
+    expect(res.statusCode).toBe(200);
+    const list = res.json() as Array<{ id: string }>;
+    expect(list.map((s) => s.id)).toEqual(['s2', 's1']); // server order preserved
+  });
+});
+
+describe('GET /chat/sessions/:id/messages', () => {
+  it('returns history for an owned session; 404 for another org\'s session', async () => {
+    ({ app } = buildChatApp());
+    const ok = await app.inject({ method: 'GET', url: `/chat/sessions/${OWNED}/messages`, cookies: await cookie() });
+    expect(ok.statusCode).toBe(200);
+    expect((ok.json() as unknown[]).length).toBe(1);
+    const other = await app.inject({ method: 'GET', url: `/chat/sessions/${OTHER_ORG_SESSION}/messages`, cookies: await cookie() });
+    expect(other.statusCode).toBe(404);
+  });
+});
+
+describe('PATCH /chat/sessions/:id', () => {
+  it('renames an owned session; 404 cross-tenant; 400 on empty title', async () => {
+    ({ app } = buildChatApp());
+    const ok = await app.inject({ method: 'PATCH', url: `/chat/sessions/${OWNED}`, cookies: await cookie(), payload: { title: 'Vendas Q2' } });
+    expect(ok.statusCode).toBe(200);
+    const cross = await app.inject({ method: 'PATCH', url: `/chat/sessions/${OTHER_ORG_SESSION}`, cookies: await cookie(), payload: { title: 'x' } });
+    expect(cross.statusCode).toBe(404);
+    const bad = await app.inject({ method: 'PATCH', url: `/chat/sessions/${OWNED}`, cookies: await cookie(), payload: { title: '' } });
+    expect(bad.statusCode).toBe(400);
   });
 });
 
