@@ -1,0 +1,18 @@
+# Keep the build context minimal + secret-free. The build does a fresh frozen install, so host
+# node_modules and any local build output are excluded; .env is NEVER shipped.
+**/node_modules
+**/dist
+**/.turbo
+**/*.tsbuildinfo
+.git
+.gitignore
+.env
+.env.*
+**/*.test.ts
+**/*.test.tsx
+**/*.integration.test.ts
+**/*.live.integration.test.ts
+.claude
+context
+design-system
+*.md

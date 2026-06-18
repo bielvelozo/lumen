@@ -571,6 +571,21 @@ recipient only, never the link/token) and all unit tests use a fake sender (no r
 email in CI). The real `resendEmailSender` (fetch -> api.resend.com) is implemented
 but UNVERIFIED against the live API until a key + verified domain exist.
 
+LIVE-VERIFICATION-PENDING: API image boots from env (spec 16) — VERIFIED on 2026-06-18:
+`docker build -f apps/api/Dockerfile .` (multi-stage, esbuild bundle + `pnpm deploy --prod`)
+then `docker run` with env only → runs as NON-ROOT user `lumen`, `GET /health` returns
+HTTP 200 `{"status":"ok"}`, Sentry cleanly disabled (no DSN). Fail-fast confirmed: a missing
+`SECRETS_ENCRYPTION_KEY` exits with "Invalid environment configuration: SECRETS_ENCRYPTION_KEY:
+Required" (never boots half-configured). No `.env` baked into the image (`/app` = dist +
+node_modules only). The live cross-origin cookie/CORS/TLS handshake against REAL Pages + VPS
+hostnames is an operator step at deploy (needs HTTPS on both origins for `SameSite=None`).
+
+LIVE-VERIFICATION-PENDING: Drizzle migrations forward-only/idempotent (spec 16) — VERIFIED on
+2026-06-18 vs Docker Postgres (throwaway DB): `db:migrate` applied all 0000-0003 migrations
+green; a RE-RUN was a no-op (drizzle's `__drizzle_migrations` tracks applied hashes). The
+production run is `pnpm --filter api db:migrate` against managed Postgres over TLS
+(`sslmode=require`) BEFORE the new container serves traffic (runbook DEPLOY.md).
+
 LIVE-VERIFICATION-PENDING: audit store cross-org isolation (spec 15) — the live test
 `apps/api/src/audit/audit.store.integration.test.ts` ("live: audit store") is gated on
 `DATABASE_URL` and SKIPS in the default `pnpm test`. Ran GREEN on 2026-06-18 vs Docker
