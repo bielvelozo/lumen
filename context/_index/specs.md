@@ -42,7 +42,7 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
 
 ### Phase 4 — Chat (the core)
 - **Shipped** — [[../specs/12-query-function-registry/spec|12 · Query-function registry]] — the predefined, parameterized, read-only query functions over exposed tables/relationships; allow-list enforcement; backend builds the SQL, never the model. _The constitutional heart. Deps: 09._
-- **In progress** — [[../specs/13-chat-orchestrator/spec|13 · Chat orchestrator]] — Fastify route + AI SDK tool-calling mapping model tool calls → query functions; streaming; persist `messages` (org-scoped); `function_call_logs` (sanitized); unhappy paths. _Deps: 11, 12._
+- **Shipped** — [[../specs/13-chat-orchestrator/spec|13 · Chat orchestrator]] — Fastify route + AI SDK tool-calling mapping model tool calls → query functions; streaming; persist `messages` (org-scoped); `function_call_logs` (sanitized); unhappy paths. _Deps: 11, 12._
 - **Planned** — [[../specs/14-chat-ui/spec|14 · Chat UI]] — sessions list, streaming message render on solid surfaces (glass only on chrome/input), model switch. _Deps: 06, 13._
 
 ### Phase 5 — Observability & deploy
@@ -77,6 +77,20 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
   best-effort post-commit via a `VerificationTrigger` seam (spec 04 fills it). Service
   + route unit tests; live store integration (atomic tx + UNIQUE rollback) ran green vs
   Docker Postgres. All gates green.
+- **13 · Chat orchestrator** — shipped 2026-06-18. Flow 4 — the request loop tying Claude
+  (Vercel AI SDK) + the spec-12 registry + read-only MySQL. **Gate-2 CRITICAL** (all four checks
+  UPHELD; 3 LOW, L3 resolved). `POST /chat/sessions` + SSE `POST /chat/sessions/:id/messages`
+  (org/user from JWT; `:sessionId` ownership → 404). The orchestrator persists the user turn,
+  decrypts the org's active Claude key + model in-process, exposes the registry functions as
+  AI-SDK **tools** (each `execute` runs the spec-12 guarded executor read-only + writes ONE
+  sanitized `function_call_logs` row — type-tag params, closed-code errors), runs a capped
+  (`maxSteps=5`) tool-loop behind a `ChatModelPort` (CI fake; real `createAiSdkChatModel` =
+  `streamText`+`tool`+`stepCountIs`), streams the answer, persists the assistant turn + title.
+  The model never sees the credential and never emits SQL; the number comes from the DB.
+  Unhappy paths 3-8 each map to a sanitized code. GUARD TESTS: no-model-string-in-SQL (injection
+  → refusal, runner never called), cross-tenant `:sessionId` → 404, secret/log-scan (key never
+  in messages/logs/stream). Live chat e2e vs Docker MySQL returned the EXACT figure (350)
+  through the full loop. 249 api (+35 skips) + 57 shared + 41 web tests green.
 - **12 · Query-function registry** — shipped 2026-06-18. **The constitutional heart**
   (invariant 3) and a **Gate-2 CRITICAL** spec (all four checks UPHELD; F2/F3 resolved, F1
   documented). A PURE backend module (no AI, no HTTP): `(functionName, rawParams, orgId)` +
