@@ -1,3 +1,4 @@
+import './load-env'; // MUST be first: load the repo-root .env into process.env before any env read
 import type { Env } from '@lumen/shared';
 import { buildApp } from './app';
 import { loadEnv } from './env';
