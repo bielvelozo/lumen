@@ -62,6 +62,7 @@ export function AppShell(): JSX.Element {
         <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <NavItem href="/">Início</NavItem>
           <NavItem href="/connect/database">Banco de dados</NavItem>
+          <NavItem href="/connect/ai">IA (Claude)</NavItem>
         </nav>
       </GlassPanel>
 

@@ -4,6 +4,7 @@ import { AuthLayout } from './routes/AuthLayout';
 import { AppShell } from './routes/AppShell';
 import { HomePage } from './routes/HomePage';
 import { ConnectDatabasePage } from './routes/connect-db/ConnectDatabasePage';
+import { ConnectAiPage } from './routes/connect-ai/ConnectAiPage';
 import { SignupPage } from './pages/SignupPage';
 import { LoginPage } from './pages/LoginPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
@@ -33,6 +34,7 @@ export function AppRoutes(): JSX.Element {
         <Route element={<AppShell />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/connect/database" element={<ConnectDatabasePage />} />
+          <Route path="/connect/ai" element={<ConnectAiPage />} />
         </Route>
       </Route>
 
