@@ -10,7 +10,10 @@ dist/
 build/
 .cache/
 .turbo/
+coverage/
 *.tsbuildinfo
+pnpm-debug.log*
+npm-debug.log*
 
 # Secrets & local env (never commit — see constitution: secrets stay out of the repo)
 .env

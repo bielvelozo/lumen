@@ -1,0 +1,42 @@
+# Local DEV infrastructure for Lumen (spec 00). NOT production (that is spec 16).
+# Brings up the app DB (Postgres) and a client-DB stand-in (MySQL). Connection
+# URLs are documented in .env.example and match the defaults below.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lumen-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: lumen
+    ports:
+      - "5432:5432"
+    volumes:
+      - lumen_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d lumen"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  mysql:
+    image: mysql:8.0
+    container_name: lumen-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: lumen_client
+    ports:
+      - "3306:3306"
+    volumes:
+      - lumen_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+volumes:
+  lumen_pg_data:
+  lumen_mysql_data:
