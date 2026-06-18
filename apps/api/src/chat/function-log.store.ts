@@ -1,3 +1,4 @@
+import { redactSensitive } from '@lumen/shared';
 import type { LogStatus } from '@lumen/shared';
 import { functionCallLogs } from '../db/schema';
 import type { Database } from '../db/client';
@@ -28,7 +29,13 @@ export interface FunctionLogStore {
 export function makeDrizzleFunctionLogStore(db: Database): FunctionLogStore {
   return {
     async insert(input) {
-      await db.insert(functionCallLogs).values(input);
+      // Write-site guard (spec 15): the SAME shared `redactSensitive` the Sentry scrubber uses
+      // runs here too, so a denylisted key can never survive into `params` — regardless of the
+      // caller. The orchestrator already type-tags params (no values), so this is a no-op backstop
+      // that also protects any future writer that passes raw params.
+      const params =
+        input.params === null ? null : (redactSensitive(input.params) as Record<string, unknown>);
+      await db.insert(functionCallLogs).values({ ...input, params });
     },
   };
 }

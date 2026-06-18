@@ -21,6 +21,8 @@ import type { AiConnectionService } from './ai-connection/ai-connection.service'
 import { registerAiConnectionRoutes } from './ai-connection/ai-connection.route';
 import type { ChatRouteDeps } from './chat/chat.route';
 import { registerChatRoutes } from './chat/chat.route';
+import type { AuditStore } from './audit/audit.store';
+import { registerAuditRoutes } from './audit/audit.route';
 
 /**
  * Dependencies injected into the app. Optional so `/health` (and the existing
@@ -48,6 +50,11 @@ export interface AppDeps {
   };
   /** Chat orchestrator routes (spec 13). `requireAuth` from the JWT. */
   chat?: ChatRouteDeps & {
+    accessTokenService: AccessTokenService;
+  };
+  /** Audit read endpoint (spec 15). `requireAuth` from the JWT. */
+  audit?: {
+    auditStore: AuditStore;
     accessTokenService: AccessTokenService;
   };
 }
@@ -87,7 +94,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
 
   // The cookie plugin must load ONCE, before any route/requireAuth that reads cookies.
   // Register it if any cookie-dependent feature is wired.
-  if (deps.auth || deps.dbConnection || deps.aiConnection || deps.chat) {
+  if (deps.auth || deps.dbConnection || deps.aiConnection || deps.chat || deps.audit) {
     app.register(cookie);
   }
 
@@ -114,6 +121,11 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
   if (deps.chat) {
     const requireAuth = makeRequireAuth(deps.chat.accessTokenService);
     registerChatRoutes(app, { service: deps.chat.service, chatStore: deps.chat.chatStore }, requireAuth);
+  }
+
+  if (deps.audit) {
+    const requireAuth = makeRequireAuth(deps.audit.accessTokenService);
+    registerAuditRoutes(app, deps.audit.auditStore, requireAuth);
   }
 
   return app;

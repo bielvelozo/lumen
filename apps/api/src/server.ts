@@ -30,6 +30,7 @@ import { createChatService } from './chat/chat.service';
 import { createAiSdkChatModel } from './chat/chat-model';
 import { makeDrizzleAllowListAccessor } from './query-registry/allow-list';
 import { createMysql2QueryRunner } from './query-registry/query-runner';
+import { makeDrizzleAuditStore } from './audit/audit.store';
 
 // Access token ~15 min; refresh 30 days (fixed lifetime, v1). See DECISIONS.md.
 const ACCESS_TTL_SECONDS = 15 * 60;
@@ -143,6 +144,7 @@ const app = buildApp({
   dbConnection: { consentService, dbConnectionService, exposureService, accessTokenService },
   aiConnection: { aiConnectionService, accessTokenService },
   chat: { service: chatService, chatStore, accessTokenService },
+  audit: { auditStore: makeDrizzleAuditStore(db), accessTokenService },
 });
 
 app

@@ -540,6 +540,14 @@ recipient only, never the link/token) and all unit tests use a fake sender (no r
 email in CI). The real `resendEmailSender` (fetch -> api.resend.com) is implemented
 but UNVERIFIED against the live API until a key + verified domain exist.
 
+LIVE-VERIFICATION-PENDING: audit store cross-org isolation (spec 15) — the live test
+`apps/api/src/audit/audit.store.integration.test.ts` ("live: audit store") is gated on
+`DATABASE_URL` and SKIPS in the default `pnpm test`. Ran GREEN on 2026-06-18 vs Docker
+Postgres (throwaway DB): seeded two orgs' `function_call_logs`, proved `listForOrg(A)` returns
+ONLY org A's rows (org B's activity never leaks — anti-IDOR), plus status filter + pagination
+`hasMore`. The route-level anti-IDOR (org from JWT, `.strict()` rejects a forged `orgId` query)
+is covered by `audit.route.test.ts`. Re-confirm in the final gate.
+
 LIVE-VERIFICATION-PENDING: chat end-to-end (spec 13) — the live test
 `apps/api/src/chat/chat.live.integration.test.ts` ("live: chat end-to-end") is gated on
 `MYSQL_URL` and SKIPS in the default `pnpm test`. Ran GREEN on 2026-06-18 vs Docker MySQL:
