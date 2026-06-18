@@ -21,6 +21,7 @@ Learnings here are specific to Business Assistant. Code style conventions live i
 - [[../learnings/generated-sql-least-privilege-by-construction|The onboarding script is least-privilege BY CONSTRUCTION]] — only emit `CREATE USER`+`GRANT SELECT`+`FLUSH`; test allow+deny-list over comment-stripped SQL; validate embedded identifiers; spec 08 must still detect-and-reject root (spec 07).
 - [[../learnings/mysql-privilege-check-allowlist-not-denylist|Verify "read-only" with an allowlist, never a denylist]] — over-privileged unless every `SHOW GRANTS` token ∈ {SELECT,USAGE,SHOW VIEW}; catches MySQL 8 dynamic/admin/PROXY; test BEFORE persisting the secret (spec 08).
 - [[../learnings/exposure-allowlist-client-chooses-backend-derives|The exposure allow-list takes client CHOICES (names), not client DATA]] — client sends names only; backend re-introspects + derives columns/FKs; validated name = membership lookup, never SQL identifier; whole-set replace in one tx (cascade/idempotent). Specs 12/13 read only these rows (spec 09).
+- [[../learnings/ai-key-store-only-on-success-vs-db-store-on-failure|The Claude key is stored ONLY on success — inverse of the DB password]] — `NOT NULL` secret + store-only-on-success ⇒ first-time failure persists nothing; a failed re-key never overwrites a working key; only re-validating the stored key (permanent category) downgrades active→failed; transient blips don't (spec 11).
 
 ## `#reference` — Environment and commands
 

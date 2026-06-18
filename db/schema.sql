@@ -121,8 +121,8 @@ CREATE TABLE db_connections (
     updated_at          timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_dbconn_org ON db_connections(org_id);
--- v1: uma conexao de cliente por org. Se quiser cravar isso, descomente:
--- CREATE UNIQUE INDEX uq_dbconn_org ON db_connections(org_id);
+-- v1: uma conexao de cliente por org — CRAVADO (spec 08, migration 0002).
+CREATE UNIQUE INDEX uq_dbconn_org ON db_connections(org_id);
 
 
 -- ----------------------------------------------------------------------------
@@ -184,8 +184,9 @@ CREATE TABLE ai_connections (
     updated_at         timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_aiconn_org ON ai_connections(org_id);
--- v1: um provedor por org. Para cravar:
--- CREATE UNIQUE INDEX uq_aiconn_org ON ai_connections(org_id, provider);
+-- v1: um provedor por org — CRAVADO (spec 11, migration 0003). Single-column por org
+-- para o upsert por org (ON CONFLICT) e para bloquear uma segunda linha.
+CREATE UNIQUE INDEX uq_aiconn_org ON ai_connections(org_id);
 
 
 -- ----------------------------------------------------------------------------

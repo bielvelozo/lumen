@@ -38,7 +38,7 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
 - **Shipped** — [[../specs/10-connect-db-ui/spec|10 · Connect-DB UI]] — frontend for the full connect-DB flow (consent → script → credentials → test → choose tables/relationships → status). _Deps: 06, 07, 08, 09._
 
 ### Phase 3 — Connect the AI (Claude)
-- **In progress** — [[../specs/11-ai-connection-claude/spec|11 · Connect Claude]] — paste API key; validate with a test call (Vercel AI SDK); encrypt; set `default_model`; status + `last_error`; frontend. _Deps: 02, 05, 06._
+- **Shipped** — [[../specs/11-ai-connection-claude/spec|11 · Connect Claude]] — paste API key; validate with a test call (Vercel AI SDK); encrypt; set `default_model`; status + `last_error`; frontend. _Deps: 02, 05, 06._
 
 ### Phase 4 — Chat (the core)
 - **Planned** — [[../specs/12-query-function-registry/spec|12 · Query-function registry]] — the predefined, parameterized, read-only query functions over exposed tables/relationships; allow-list enforcement; backend builds the SQL, never the model. _The constitutional heart. Deps: 09._
@@ -77,6 +77,19 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
   best-effort post-commit via a `VerificationTrigger` seam (spec 04 fills it). Service
   + route unit tests; live store integration (atomic tx + UNIQUE rollback) ran green vs
   Docker Postgres. All gates green.
+- **11 · Connect Claude** — shipped 2026-06-18. Flow 3 (Gate-1, clean; LOW doc finding
+  resolved). Backend + small frontend: paste a BYO Claude key, validate it with a **real
+  minimal completion** via the **Vercel AI SDK** (`ai` + `@ai-sdk/anthropic`, `maxOutputTokens`
+  ~4, bounded timeout) behind a `ClaudeValidator` port (CI mocks it; `ANTHROPIC_API_KEY`-gated
+  live smoke ledgered), encrypt via spec 02 into `ai_connections.encrypted_api_key`, record a
+  curated `default_model`. Curated model list in `packages/shared` — verified ids (no date
+  suffix), `claude-opus-4-8` default; submitting an off-list model is Zod-rejected before any
+  provider call. Sanitized closed-set `last_error` (`invalid_key`/`model_unavailable`/
+  `rate_limited`/`network`/`unknown`); raw provider text never persisted/returned. Store-only-
+  on-success: a first-time failure persists nothing; a failed re-key never overwrites a working
+  key; transient re-validate doesn't downgrade. Anti-IDOR: org from `getAuth` only; the key is
+  never returned by any endpoint. Added `uq_aiconn_org` (migration 0003). 202 api + 41 web +
+  45 shared tests green.
 - **10 · Connect-DB UI** — shipped 2026-06-18. The Flow-2 frontend in `apps/web`: a single
   protected route `/connect/database` whose step is **derived purely from server state**
   (consent → connect → exposure → dashboard; no client step flag, so deep-linking a later

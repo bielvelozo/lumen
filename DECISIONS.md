@@ -342,6 +342,19 @@ non-blocking hint only (default #5). Validation uses the **Vercel AI SDK**
 (`ai` + `@ai-sdk/anthropic`) per the locked stack (HANDOFF), behind a `ClaudeValidator`
 port; CI mocks the provider, an `ANTHROPIC_API_KEY`-gated live smoke is optional.
 
+### 11-ai-connection | Gate-1 security-review result
+2026-06-18 — Gate 1 (security-review-before-merge) run on the spec-11 diff. All five
+non-negotiable invariants UPHELD, each backed by a passing test: secret-at-rest (key
+AES-256-GCM-encrypted before any store write; Postgres never sees plaintext; never
+returned/logged/echoed in a 400 body), sanitized errors (`categorizeProviderError` maps
+to the closed set; raw provider text discarded), anti-IDOR (org from `getAuth` only;
+`.strict()` rejects a client org/connection id), model allow-list (Zod enum rejects
+off-list models before any provider call), no-store-on-failure (dead key never persisted;
+failed re-key never overwrites the stored ciphertext). Zero HIGH/MEDIUM findings. One LOW
+(doc divergence): the DDL oracle `db/schema.sql` kept `uq_aiconn_org` (and `uq_dbconn_org`)
+commented while the executed migrations enforce single-column `UNIQUE(org_id)` — RESOLVED
+by syncing `db/schema.sql` to the migrations (no exploit; migrations are the live source).
+
 ### 16-deploy | managed Postgres provider
 2026-06-17 — `[CONFIRM-WITH-HUMAN]` Default: pick one of **Neon / Supabase**; use
 the direct (non-pooled) URL for the migration step and a pooled URL for the app if
