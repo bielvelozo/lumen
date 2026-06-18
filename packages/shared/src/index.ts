@@ -9,3 +9,5 @@ export * from './introspection-contracts';
 export * from './ai-contracts';
 export * from './query-registry-contracts';
 export * from './chat-contracts';
+export * from './redact';
+export * from './audit-contracts';

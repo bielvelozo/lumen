@@ -60,7 +60,11 @@ export const envSchema = z.object({
   // human/DNS step.
   RESEND_FROM_EMAIL: z.string().default('Lumen <onboarding@resend.dev>'),
   ANTHROPIC_API_KEY: z.string().default(''),
+  // Observability (spec 15). Empty DSN = Sentry disabled (local dev boots without it).
   SENTRY_DSN: z.string().default(''),
+  SENTRY_ENVIRONMENT: z.string().default('development'),
+  // Conservative default trace sample rate; tuned per-environment at deploy (spec 16).
+  SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).default(0.1),
 });
 
 export type Env = z.infer<typeof envSchema>;
