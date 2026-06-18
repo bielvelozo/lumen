@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import cookie from '@fastify/cookie';
+import cors from '@fastify/cors';
 import type { HealthResponse } from '@lumen/shared';
 import { makeRequestId } from './observability/request-id';
 import { Sentry } from './observability/sentry';
@@ -57,6 +58,12 @@ export interface AppDeps {
     auditStore: AuditStore;
     accessTokenService: AccessTokenService;
   };
+  /**
+   * Cross-site CORS (spec 16). `origins` is the EXPLICIT allow-list (the production Pages
+   * origin(s)) permitted to call the API with credentials. NEVER `*` — the browser rejects
+   * `*` + credentials, and a wildcard would defeat the cookie's site scoping.
+   */
+  cors?: { origins: string[] };
 }
 
 /**
@@ -79,6 +86,17 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     reply.header('x-request-id', String(request.id));
     return reply.code(500).send({ error: 'InternalError', requestId: request.id });
   });
+
+  // Cross-site CORS — registered early so it handles preflight for every route. `credentials`
+  // is on (the cross-site auth cookie must be sent), so `origin` MUST be an explicit allow-list,
+  // never `*`. An off-list origin gets no `Access-Control-Allow-Origin` and the browser blocks it.
+  if (deps.cors) {
+    app.register(cors, {
+      origin: deps.cors.origins,
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    });
+  }
 
   app.get('/health', async (): Promise<HealthResponse> => {
     return { status: 'ok' };

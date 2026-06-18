@@ -17,6 +17,7 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.85",
     "@fastify/cookie": "^11.0.2",
+    "@fastify/cors": "^11.2.0",
     "@lumen/shared": "workspace:*",
     "@node-rs/argon2": "^2.0.2",
     "@sentry/node": "^10.58.0",

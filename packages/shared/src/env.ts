@@ -51,6 +51,10 @@ export const envSchema = z.object({
   // Public base URL of the SPA — used to build the email-verification link
   // `{APP_URL}/verify-email?token=...` (spec 04). Defaults to the Vite dev server.
   APP_URL: z.string().url('APP_URL must be a valid URL').default('http://localhost:5173'),
+  // Cross-site CORS allow-list (spec 16): the production Pages origin(s) permitted to call the API
+  // WITH credentials. Comma-separated; NEVER `*` (the browser rejects `*` + credentials). Defaults
+  // to the local Vite dev origin so dev works without config.
+  WEB_ORIGIN: z.string().default('http://localhost:5173'),
 
   // Deferred external services — optional until their owning spec lands. Empty
   // string means "absent": the owning spec binds a fake and skips live tests.

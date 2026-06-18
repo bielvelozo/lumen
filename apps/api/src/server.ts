@@ -145,6 +145,8 @@ const app = buildApp({
   aiConnection: { aiConnectionService, accessTokenService },
   chat: { service: chatService, chatStore, accessTokenService },
   audit: { auditStore: makeDrizzleAuditStore(db), accessTokenService },
+  // Cross-site CORS allow-list from env (comma-separated; explicit, never `*`).
+  cors: { origins: env.WEB_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean) },
 });
 
 app
