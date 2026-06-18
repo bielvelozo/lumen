@@ -131,7 +131,7 @@ function withDatabase(url: string, databaseName: string): string {
 
 describe.skipIf(!process.env.DATABASE_URL)('live: migrate applies to a fresh Postgres', () => {
   it(
-    'creates the 4 enums + 11 tables + the DESC index',
+    'creates the 4 enums + 12 tables + the DESC index',
     async () => {
       const url = process.env.DATABASE_URL;
       if (!url) throw new Error('DATABASE_URL missing');
@@ -169,10 +169,11 @@ describe.skipIf(!process.env.DATABASE_URL)('live: migrate applies to a fresh Pos
           'chat_sessions',
           'messages',
           'function_call_logs',
+          'db_connection_consents', // spec 07 (Option B) — beyond the original 11
         ]) {
           expect(tableNames).toContain(expected);
         }
-        expect(tableNames).toHaveLength(11);
+        expect(tableNames).toHaveLength(12);
 
         const idx = await testPool.query<{ indexdef: string }>(
           "SELECT indexdef FROM pg_indexes WHERE indexname = 'idx_session_org_updated'",

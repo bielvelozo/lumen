@@ -309,6 +309,37 @@ export const functionCallLogs = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// db_connection_consents — spec 07 (Option B). A lightweight, durable consent record
+// written BEFORE any credential exists (db_connections.encrypted_password is NOT NULL, so
+// consent cannot live on a bare db_connections row). Spec 08 reads/gates on this and
+// copies the fields into the db_connections row on insert. NOT one of the original 11
+// db/schema.sql tables. No secret column here (invariant 2 by omission).
+// ---------------------------------------------------------------------------
+export const dbConnectionConsents = pgTable(
+  'db_connection_consents',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    consentVersion: text('consent_version').notNull(),
+    acceptedAt: tz('accepted_at').notNull().defaultNow(),
+    acceptedBy: uuid('accepted_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: tz('created_at').notNull().defaultNow(),
+  },
+  (table) => [
+    // One acceptance row per (org, version) — re-accepting the same version is idempotent.
+    unique('db_connection_consents_org_id_consent_version_key').on(
+      table.orgId,
+      table.consentVersion,
+    ),
+    index('idx_dbconn_consent_org').on(table.orgId),
+  ],
+);
+
+// ---------------------------------------------------------------------------
 // Inferred row types (server-side). These carry `Buffer` secret columns and
 // internal fields, so they stay in apps/api and are NOT exported through
 // packages/shared (which would be a circular workspace dependency). The web only
@@ -336,3 +367,5 @@ export type Message = typeof messages.$inferSelect;
 export type NewMessage = typeof messages.$inferInsert;
 export type FunctionCallLog = typeof functionCallLogs.$inferSelect;
 export type NewFunctionCallLog = typeof functionCallLogs.$inferInsert;
+export type DbConnectionConsent = typeof dbConnectionConsents.$inferSelect;
+export type NewDbConnectionConsent = typeof dbConnectionConsents.$inferInsert;
