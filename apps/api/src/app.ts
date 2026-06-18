@@ -13,6 +13,8 @@ import type { ConsentService } from './db-connection/consent.service';
 import { registerConsentRoutes } from './db-connection/consent.route';
 import type { DbConnectionService } from './db-connection/db-connection.service';
 import { registerDbConnectionRoutes } from './db-connection/db-connection.route';
+import type { ExposureService } from './db-connection/exposure.service';
+import { registerExposureRoutes } from './db-connection/exposure.route';
 
 /**
  * Dependencies injected into the app. Optional so `/health` (and the existing
@@ -29,6 +31,8 @@ export interface AppDeps {
     consentService: ConsentService;
     /** spec 08 create/test connection (optional until spec 08 wires it). */
     dbConnectionService?: DbConnectionService;
+    /** spec 09 introspection + exposure allow-list (optional until spec 09 wires it). */
+    exposureService?: ExposureService;
     accessTokenService: AccessTokenService;
   };
 }
@@ -68,6 +72,9 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     registerConsentRoutes(app, deps.dbConnection.consentService, requireAuth);
     if (deps.dbConnection.dbConnectionService) {
       registerDbConnectionRoutes(app, deps.dbConnection.dbConnectionService, requireAuth);
+    }
+    if (deps.dbConnection.exposureService) {
+      registerExposureRoutes(app, deps.dbConnection.exposureService, requireAuth);
     }
   }
 

@@ -17,6 +17,9 @@ import { createConsentService } from './db-connection/consent.service';
 import { makeDrizzleDbConnectionStore } from './db-connection/db-connection.store';
 import { createDbConnectionService } from './db-connection/db-connection.service';
 import { createMysqlConnectionTester } from './db-connection/connection-tester';
+import { makeDrizzleExposureStore } from './db-connection/exposure.store';
+import { createExposureService } from './db-connection/exposure.service';
+import { createMysqlSchemaIntrospector } from './db-connection/schema-introspector';
 
 // Access token ~15 min; refresh 30 days (fixed lifetime, v1). See DECISIONS.md.
 const ACCESS_TTL_SECONDS = 15 * 60;
@@ -73,11 +76,20 @@ const authService = createAuthService({
 // DB-connection consent + onboarding script (spec 07) + create/test connection (spec 08).
 const consentService = createConsentService(makeDrizzleConsentStore(db));
 const crypto = createCryptoModule(env); // encrypt/decrypt the client-DB password (spec 02)
+const dbConnectionStore = makeDrizzleDbConnectionStore(db);
 const dbConnectionService = createDbConnectionService({
-  store: makeDrizzleDbConnectionStore(db),
+  store: dbConnectionStore,
   tester: createMysqlConnectionTester(),
   consentService,
   encrypt: crypto.encrypt,
+  decrypt: crypto.decrypt,
+});
+
+// Introspection + exposure allow-list (spec 09).
+const exposureService = createExposureService({
+  connectionStore: dbConnectionStore,
+  introspector: createMysqlSchemaIntrospector(),
+  exposureStore: makeDrizzleExposureStore(db),
   decrypt: crypto.decrypt,
 });
 
@@ -90,7 +102,7 @@ const app = buildApp({
     accessTtlSeconds: ACCESS_TTL_SECONDS,
     refreshTtlSeconds: REFRESH_TTL_SECONDS,
   },
-  dbConnection: { consentService, dbConnectionService, accessTokenService },
+  dbConnection: { consentService, dbConnectionService, exposureService, accessTokenService },
 });
 
 app
