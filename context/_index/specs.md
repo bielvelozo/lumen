@@ -33,7 +33,7 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
 
 ### Phase 2 — Connect the client DB (MySQL)
 - **Shipped** — [[../specs/07-db-connection-consent-and-script/spec|07 · Consent & onboarding script]] — terms/consent capture; generate the read-only onboarding SQL script for the customer. _Deps: 05, 06._
-- **In progress** — [[../specs/08-db-connection-create-and-test/spec|08 · Create & test connection]] — create `db_connections`; encrypt password; live MySQL connection test; `status` (pending/active/failed) + sanitized `last_error`; read-only/least-privilege checks. _Deps: 02, 07._
+- **Shipped** — [[../specs/08-db-connection-create-and-test/spec|08 · Create & test connection]] — create `db_connections`; encrypt password; live MySQL connection test; `status` (pending/active/failed) + sanitized `last_error`; read-only/least-privilege checks. _Deps: 02, 07._
 - **Planned** — [[../specs/09-introspection-and-exposure/spec|09 · Introspection & exposure]] — introspect tables/columns/FKs; owner approves `exposed_tables` + `exposed_relationships` (allow-list). _Deps: 08._
 - **Planned** — [[../specs/10-connect-db-ui/spec|10 · Connect-DB UI]] — frontend for the full connect-DB flow (consent → script → credentials → test → choose tables/relationships → status). _Deps: 06, 07, 08, 09._
 
@@ -77,6 +77,19 @@ Status legend: **Planned** (spec written, not implemented) · **In progress** ·
   best-effort post-commit via a `VerificationTrigger` seam (spec 04 fills it). Service
   + route unit tests; live store integration (atomic tx + UNIQUE rollback) ran green vs
   Docker Postgres. All gates green.
+- **08 · Create & test connection** — shipped 2026-06-18. Flow-2 gate 2 (backend; UI is
+  spec 10). `PUT /db-connection` upserts the org's single `db_connections` row (keyed by the
+  new `uq_dbconn_org`, migration 0002), **encrypts the password** (spec 02 AES-256-GCM →
+  `encrypted_password` only), and runs a **live mysql2 test** (connect + `SELECT 1` +
+  `SHOW GRANTS`, ≤5s, try/finally close) → `active | failed` with a SANITIZED `last_error`
+  from a closed category set (raw driver text never stored/returned/logged). Root/over-
+  privileged credential → **detect-and-REJECT** (422, never stored — invariant 5); the
+  Gate-1 review upgraded the grants check to a deny-by-allowlist (catches MySQL 8 dynamic/
+  admin/`PROXY`). `POST /db-connection/test` re-tests via the decrypted password; all routes
+  `requireAuth` (org from JWT, anti-IDOR). Consent (spec 07) gates create. Unit (mapper/
+  grants/service/route) + **live MySQL integration ran green vs Docker MySQL** (read-only→
+  active, root→rejected, error categories). Gate-1 `/security-review`: no HIGH; MEDIUM
+  (denylist gap) resolved.
 - **07 · Consent & onboarding script** — shipped 2026-06-18. Flow-2 gate 1 (backend;
   UI is spec 10). Resolved the consent-before-credential tension as **Option B**: a new
   `db_connection_consents` table (migration `0001`, the 12th) holds durable, versioned,

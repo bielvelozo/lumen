@@ -18,6 +18,7 @@ Learnings here are specific to Business Assistant. Code style conventions live i
 - [[../learnings/auth-bootstrap-via-me-httponly-cookie|The SPA can't read the auth cookie — bootstrap from `GET /auth/me`]] — httpOnly cookie is invisible to JS; gate the tree on the `me` query (401→null), splash while pending; never send a tenant id (spec 06).
 - [[../learnings/glass-only-rtl-guard-test|Enforcing glass-only-on-chrome with an RTL guard test]] — assert no `.glass .card/.metric/.bubble` and `getByText(number).closest('.glass')` is null; required for specs 06/10/14 (spec 06).
 - [[../learnings/generated-sql-least-privilege-by-construction|The onboarding script is least-privilege BY CONSTRUCTION]] — only emit `CREATE USER`+`GRANT SELECT`+`FLUSH`; test allow+deny-list over comment-stripped SQL; validate embedded identifiers; spec 08 must still detect-and-reject root (spec 07).
+- [[../learnings/mysql-privilege-check-allowlist-not-denylist|Verify "read-only" with an allowlist, never a denylist]] — over-privileged unless every `SHOW GRANTS` token ∈ {SELECT,USAGE,SHOW VIEW}; catches MySQL 8 dynamic/admin/PROXY; test BEFORE persisting the secret (spec 08).
 
 ## `#reference` — Environment and commands
 
@@ -32,3 +33,4 @@ Learnings here are specific to Business Assistant. Code style conventions live i
 - [[../learnings/node-rs-argon2-const-enum-verbatim-module|`@node-rs/argon2`'s `Algorithm` enum is unusable under `verbatimModuleSyntax`]] — ambient `const enum` → TS2748; omit the `algorithm` option (default is argon2id) and pin it with a `$argon2id$` PHC test (spec 02).
 - [[../learnings/pnpm-strict-deps-declare-zod-to-import-types|pnpm strict deps: declare `zod` to `import { ZodError }` by name]] — a transitive dep via `@lumen/shared` covers inferred types, but a *named* import needs the package in that workspace's own `dependencies` (TS2307) (spec 04).
 - [[../learnings/fastify-cookie-plugin-register-before-routes|`@fastify/cookie` must be registered BEFORE the routes that use cookies]] — decorations (`reply.setCookie`, `request.cookies`) only reach routes registered after the plugin; gate it on the auth dep so the base app stays minimal (spec 05).
+- [[../learnings/vitest-skipif-body-still-evaluated|`describe.skipIf(...)` still evaluates the describe body during collection]] — throwing setup (e.g. `new URL('')`) in a skipped suite's body fails the whole FILE offline; move it to `beforeAll` (specs 01/08/09/13) (spec 08).

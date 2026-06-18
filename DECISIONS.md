@@ -43,10 +43,11 @@ with Drizzle. Locked as a convention. Not security-sensitive.
 way. Not security-sensitive.
 
 ### 01-app-db | v1 single-connection/single-AI uniqueness indexes
-2026-06-18 — Default taken: **no** — mirror `db/schema.sql`; the commented-out
-`uq_dbconn_org` / `uq_aiconn_org` unique indexes stay absent. "One connection per
-org" / "one AI provider per org" is enforced in application logic by specs 08 / 11.
-Not security-sensitive.
+2026-06-18 — Default taken at spec 01: **no** unique indexes (mirror `db/schema.sql`),
+enforced in app logic by 08/11. UPDATED: spec 08 ENABLED `uq_dbconn_org` (migration
+0002) — the atomic upsert keyed by `org_id` needs the DB constraint as the race backstop,
+so the index is now live for `db_connections`. `uq_aiconn_org` stays absent until spec 11
+needs it. Not security-sensitive (the constraint strengthens one-connection-per-org).
 
 ### 02-secrets | master-key source in production
 2026-06-18 — Default taken: a **validated env var** (`SECRETS_ENCRYPTION_KEY`,
@@ -248,17 +249,32 @@ root). username + databaseName validated to `^[A-Za-z0-9_]+$` (≤64) before emb
 no SQL injection into the generated script. No password is ever generated/received/stored.
 
 ### 08-connection | over-privileged / root credential handling
-2026-06-17 — `[CONFIRM-WITH-HUMAN]` Default: **detect-and-REJECT**. At
-connection-create, run `SHOW GRANTS` (or equivalent); if the credential is root or
-holds write/DDL/admin privileges, REFUSE to store it and surface the onboarding
-script. Warn-and-proceed is NOT permitted (constitution invariant 5). The
-`[CONFIRM-WITH-HUMAN]` flag covers only HOW STRICT the privilege check is, never
-whether root may be stored. Flagged for human review of strictness threshold.
+2026-06-18 — `[CONFIRM-WITH-HUMAN]` `RESOLVED:` IMPLEMENTED as **detect-and-REJECT**
+(NOT the spec's softer warn-and-proceed lean — overridden by invariant 5). At create,
+the tester connects once and runs `SHOW GRANTS FOR CURRENT_USER()`; an over-privileged
+credential → `422 CredentialOverPrivileged`, and its password is NEVER encrypted/stored
+(verified: `upsert` not called on the over_privileged branch; live test: root rejected).
+The Gate-1 review upgraded the check from a denylist to a **deny-by-allowlist** (a grant
+is over-privileged unless every privilege token is in {SELECT, USAGE, SHOW VIEW}) so it
+catches MySQL 8 dynamic/admin privileges + `PROXY` + `GRANT OPTION`. Strictness threshold
+still flagged for human review (it is strict by design — read-only only).
 
 ### 08-connection | TLS strictness to the client MySQL
-2026-06-17 — `[CONFIRM-WITH-HUMAN]` Default: encrypted-with-verification where
-feasible; never downgrade to plaintext. Finalize certificate handling before
-merging spec 08. Flagged for human review.
+2026-06-18 — `[CONFIRM-WITH-HUMAN]` Default taken (implemented): when `ssl_enabled`, the
+tester connects with `ssl: { rejectUnauthorized: true }` (encrypted-with-verification);
+there is NO catch-and-retry-plaintext path, so a requested TLS connection can't silently
+downgrade (a TLS failure → `ssl_error`). A CA-bundle / verify-identity knob and the live
+SSL round-trip are deferred to spec 16. Flagged. (Live happy-path test uses
+`ssl_enabled=false` against local Docker MySQL.)
+
+### 08-connection | route shape + timeout + uq_dbconn_org
+2026-06-18 — Defaults taken: routes `PUT /db-connection` (create-or-update+test, sync),
+`POST /db-connection/test` (re-test, no password re-entry), `GET /db-connection` (state).
+Connect+query timeout ~5s, no auto-retry. Sanitized `last_error` from a CLOSED category
+set (raw driver text never stored/returned/logged). Enabled the `uq_dbconn_org` unique
+index (migration 0002) so create-or-update is an atomic upsert keyed by `org_id` — this
+RESOLVES the earlier 01 decision (index absent). Not security-weakening (the index +
+org-from-JWT strengthen isolation).
 
 ### 16-deploy | managed Postgres provider
 2026-06-17 — `[CONFIRM-WITH-HUMAN]` Default: pick one of **Neon / Supabase**; use
@@ -311,6 +327,18 @@ then assert consent is org-scoped, re-accepting the same version is idempotent
 (unique org+version), and a version bump returns the latest). The spec-01 migrate smoke
 (now 12 tables, incl. `db_connection_consents`) also ran green. Re-confirm in the
 §7(2) final live gate.
+
+LIVE-VERIFICATION-PENDING: apps/api live MySQL connection tester
+(`src/db-connection/db-connection.live.integration.test.ts` -> "live: MySQL connection
+tester") is gated on `MYSQL_URL`. SKIPS in the default `pnpm test`. Run GREEN on
+2026-06-18 against local Docker MySQL via
+`MYSQL_URL=mysql://root:root@127.0.0.1:3306/lumen_client npx vitest run` (as root,
+provision a throwaway DB + a SELECT-only user, then assert read-only→ok, root→
+over_privileged(reject), wrong-password→auth_failed, bad-db→database_not_found,
+unreachable-port→fast-fail). This satisfies RALPH 7(2) (08 must run live MySQL once).
+Re-confirm in the final live gate. NOTE: real-customer caching_sha2_password over
+plaintext (no SSL) may need `allowPublicKeyRetrieval`/SSL — the test user uses
+mysql_native_password; revisit with the SSL story at spec 16.
 
 LIVE-VERIFICATION-PENDING: cross-site cookie behavior (spec 05) — the
 `Secure`+`SameSite=None` auth cookies require HTTPS; over plain-HTTP local dev the
