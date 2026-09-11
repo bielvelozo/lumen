@@ -72,6 +72,33 @@ describe('streamMessage — SSE reader', () => {
     expect(events.at(-1)).toMatchObject({ type: 'done' });
   });
 
+  it('refreshes the session once and replays the POST on a 401', async () => {
+    fetchMock
+      .mockResolvedValueOnce(new Response('', { status: 401 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }))
+      .mockResolvedValueOnce(
+        sseResponse(['data: {"type":"done","messageId":"m","model":"claude-opus-4-8"}\n\n']),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const events: ChatStreamEvent[] = [];
+    for await (const e of streamMessage('s1', { message: 'oi' })) events.push(e);
+
+    expect(String(fetchMock.mock.calls[1]?.[0])).toContain('/auth/refresh');
+    expect(events).toEqual([{ type: 'done', messageId: 'm', model: 'claude-opus-4-8' }]);
+  });
+
+  it('says the session expired when the refresh fails too', async () => {
+    fetchMock.mockResolvedValue(new Response('', { status: 401 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const events: ChatStreamEvent[] = [];
+    for await (const e of streamMessage('s1', { message: 'oi' })) events.push(e);
+    expect(events).toEqual([
+      { type: 'error', code: 'unknown', message: expect.stringContaining('sessão expirou') },
+    ]);
+  });
+
   it('yields a terminal error event when the response is not ok', async () => {
     fetchMock.mockImplementation(async () => new Response('nope', { status: 500 }));
     vi.stubGlobal('fetch', fetchMock);

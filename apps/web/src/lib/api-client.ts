@@ -40,7 +40,7 @@ async function parseBody(response: Response): Promise<unknown> {
   }
 }
 
-export async function apiFetch<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
+function buildInit(options: ApiRequestOptions): RequestInit {
   const init: RequestInit = {
     method: options.method ?? 'GET',
     credentials: 'include',
@@ -52,8 +52,43 @@ export async function apiFetch<T>(path: string, options: ApiRequestOptions = {})
     init.body = JSON.stringify(options.body);
   }
   if (options.signal) init.signal = options.signal;
+  return init;
+}
 
-  const response = await fetch(`${API_BASE}${path}`, init);
+// These answer 401 on their own merits (bad credentials, a spent refresh cookie); retrying
+// them after a refresh would be meaningless, and refreshing `/auth/refresh` itself a loop.
+const NO_REFRESH_PATHS = ['/auth/login', '/auth/logout', '/auth/refresh', '/auth/signup'];
+
+/** Whether a 401 on this path is worth one refresh-and-retry. */
+export function isRefreshable(path: string): boolean {
+  return !NO_REFRESH_PATHS.some((p) => path === p || path.startsWith(p + '?'));
+}
+
+let refreshInFlight: Promise<boolean> | null = null;
+
+/**
+ * Trade the refresh cookie for a fresh access cookie. Single-flight on purpose: the app fires
+ * several requests at once and `/auth/refresh` ROTATES the refresh token, so parallel calls
+ * would each present a token a sibling had already spent — logging the owner out instead of
+ * renewing the session.
+ */
+export function refreshSession(): Promise<boolean> {
+  refreshInFlight ??= fetch(`${API_BASE}/auth/refresh`, { method: 'POST', credentials: 'include' })
+    .then((response) => response.ok)
+    .catch(() => false)
+    .finally(() => {
+      refreshInFlight = null;
+    });
+  return refreshInFlight;
+}
+
+export async function apiFetch<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
+  let response = await fetch(`${API_BASE}${path}`, buildInit(options));
+  // The access token expires long before the session does; renew it once, transparently, and
+  // let the 401 through only when the refresh cookie is gone too (then it IS a logged-out state).
+  if (response.status === 401 && isRefreshable(path) && (await refreshSession())) {
+    response = await fetch(`${API_BASE}${path}`, buildInit(options));
+  }
   const data = await parseBody(response);
   if (!response.ok) {
     throw new ApiError(response.status, data);
