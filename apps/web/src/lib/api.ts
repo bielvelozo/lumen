@@ -7,6 +7,10 @@ import type {
   VerifyEmailResponse,
   ResendVerificationRequest,
   ResendVerificationResponse,
+  ForgotPasswordRequest,
+  ForgotPasswordResponse,
+  ResetPasswordRequest,
+  ResetPasswordResponse,
 } from '@lumen/shared';
 import { apiFetch } from './api-client';
 
@@ -35,12 +39,12 @@ export const resendVerification = (
 ): Promise<ResendVerificationResponse> =>
   apiFetch('/auth/resend-verification', { method: 'POST', body });
 
-// --- Password reset (spec 06 UI) -------------------------------------------------
-// NOTE: the backend endpoints below are NOT in the 00-16 backlog (spec 05 excludes
-// password reset). The UI is built + tested against mocks; the live endpoints are a
-// deferred future backend slice (recorded in DECISIONS.md).
-export const forgotPassword = (body: { email: string }): Promise<{ message: string }> =>
+// --- Password reset --------------------------------------------------------------
+// `forgot-password` answers the same generic body for any address (anti-enumeration);
+// `reset-password` throws on an unusable link (400), which is how the page tells "done"
+// from "ask for a new one".
+export const forgotPassword = (body: ForgotPasswordRequest): Promise<ForgotPasswordResponse> =>
   apiFetch('/auth/forgot-password', { method: 'POST', body });
 
-export const resetPassword = (body: { token: string; password: string }): Promise<{ ok: boolean }> =>
+export const resetPassword = (body: ResetPasswordRequest): Promise<ResetPasswordResponse> =>
   apiFetch('/auth/reset-password', { method: 'POST', body });

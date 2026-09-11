@@ -90,6 +90,21 @@ CREATE INDEX idx_rt_user  ON refresh_tokens(user_id);
 
 
 -- ----------------------------------------------------------------------------
+-- password_reset_tokens  (recuperacao de senha, fluxo 1)
+-- ----------------------------------------------------------------------------
+CREATE TABLE password_reset_tokens (
+    id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash  text NOT NULL,            -- HASH do token; o valor cru so vai no link do e-mail
+    expires_at  timestamptz NOT NULL,     -- vida curta (1h): o link entrega a conta
+    used_at     timestamptz,             -- single-use: setado quando consumido
+    created_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_prt_token ON password_reset_tokens(token_hash);
+CREATE INDEX idx_prt_user  ON password_reset_tokens(user_id);
+
+
+-- ----------------------------------------------------------------------------
 -- db_connections  (conexao com o banco DO CLIENTE, fluxo 2; MySQL na v1)
 -- ----------------------------------------------------------------------------
 CREATE TABLE db_connections (

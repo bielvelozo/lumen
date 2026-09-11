@@ -180,3 +180,49 @@ export type ResendVerificationResponse = z.infer<typeof resendVerificationRespon
 export const resetPasswordFormSchema = z.object({ password: passwordPolicySchema }).strict();
 
 export type ResetPasswordForm = z.infer<typeof resetPasswordFormSchema>;
+
+// ---------------------------------------------------------------------------
+// Password reset
+// ---------------------------------------------------------------------------
+
+/**
+ * `POST /auth/forgot-password` request. Email normalized exactly like signup/login, so the
+ * same address always maps to the same account. `.strict()` rejects unknown fields.
+ */
+export const forgotPasswordRequestSchema = z
+  .object({
+    email: z.string().trim().toLowerCase().email('A valid email is required'),
+  })
+  .strict();
+
+export type ForgotPasswordRequest = z.infer<typeof forgotPasswordRequestSchema>;
+
+/**
+ * `POST /auth/forgot-password` response. ALWAYS the same generic body — for a known and an
+ * unknown address alike — so the endpoint never reveals whether an account exists.
+ */
+export const forgotPasswordResponseSchema = z.object({ message: z.string() });
+
+export type ForgotPasswordResponse = z.infer<typeof forgotPasswordResponseSchema>;
+
+/**
+ * `POST /auth/reset-password` request. The opaque raw token from the email link plus the
+ * new password, held to the SAME policy as signup. `.strict()` rejects a client-supplied
+ * user id (anti-IDOR): the account is derived server-side from the hash-matched row.
+ */
+export const resetPasswordRequestSchema = z
+  .object({
+    token: z.string().min(1, 'A reset token is required'),
+    password: passwordPolicySchema,
+  })
+  .strict();
+
+export type ResetPasswordRequest = z.infer<typeof resetPasswordRequestSchema>;
+
+/**
+ * `POST /auth/reset-password` response on success. An unusable token (unknown, expired or
+ * already spent) is a `400` instead — the UI has to tell "done" from "ask for a new link".
+ */
+export const resetPasswordResponseSchema = z.object({ ok: z.literal(true) });
+
+export type ResetPasswordResponse = z.infer<typeof resetPasswordResponseSchema>;

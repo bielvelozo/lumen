@@ -9,6 +9,8 @@ import { createSignupService } from './auth/signup.service';
 import { makeDrizzleSignupStore } from './auth/signup.store';
 import { createVerificationService } from './auth/verification.service';
 import { makeDrizzleVerificationStore } from './auth/verification.store';
+import { createPasswordResetService } from './auth/password-reset.service';
+import { makeDrizzlePasswordResetStore } from './auth/password-reset.store';
 import { makeEmailSender } from './auth/email-sender';
 import { createInMemoryRateLimiter } from './auth/rate-limiter';
 import { createAccessTokenService } from './auth/jwt';
@@ -64,6 +66,18 @@ const verificationService = createVerificationService({
   rateLimiter: createInMemoryRateLimiter({ limit: 3, windowMs: 60 * 60 * 1000 }),
   generateToken,
   hashToken,
+  appUrl: env.APP_URL,
+});
+
+// Password reset. A reset link hands over an account, so it is rate-limited harder and
+// expires sooner than the verification link.
+const passwordResetService = createPasswordResetService({
+  store: makeDrizzlePasswordResetStore(db),
+  emailSender: makeEmailSender(env),
+  rateLimiter: createInMemoryRateLimiter({ limit: 3, windowMs: 60 * 60 * 1000 }),
+  generateToken,
+  hashToken,
+  hashPassword,
   appUrl: env.APP_URL,
 });
 
@@ -149,6 +163,7 @@ const chatService = createChatService({
 const app = buildApp({
   signupService,
   verificationService,
+  passwordResetService,
   auth: {
     authService,
     accessTokenService,

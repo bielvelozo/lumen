@@ -8,6 +8,8 @@ import type { SignupService } from './auth/signup.service';
 import { registerSignupRoute } from './auth/signup.route';
 import type { VerificationService } from './auth/verification.service';
 import { registerVerificationRoutes } from './auth/verification.route';
+import type { PasswordResetService } from './auth/password-reset.service';
+import { registerPasswordResetRoutes } from './auth/password-reset.route';
 import type { AuthRouteDeps } from './auth/auth.route';
 import { registerAuthRoutes } from './auth/auth.route';
 import type { AccessTokenService } from './auth/jwt';
@@ -34,6 +36,7 @@ import { registerAuditRoutes } from './audit/audit.route';
 export interface AppDeps {
   signupService?: SignupService;
   verificationService?: VerificationService;
+  passwordResetService?: PasswordResetService;
   auth?: AuthRouteDeps;
   /** DB-connection consent + create/test routes (specs 07/08). `requireAuth` from the JWT. */
   dbConnection?: {
@@ -115,6 +118,10 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
 
   if (deps.verificationService) {
     registerVerificationRoutes(app, deps.verificationService);
+  }
+
+  if (deps.passwordResetService) {
+    registerPasswordResetRoutes(app, deps.passwordResetService);
   }
 
   // The cookie plugin must load ONCE, before any route/requireAuth that reads cookies.

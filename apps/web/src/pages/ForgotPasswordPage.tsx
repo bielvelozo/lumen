@@ -9,9 +9,8 @@ import { forgotPassword } from '../lib/api';
 
 /**
  * Forgot-password. Always renders the SAME "if an account exists, we sent a link" message
- * — for any email, existing or not (non-enumerating, matching the backend posture).
- * NOTE: the `/auth/forgot-password` endpoint is a deferred backend slice (see DECISIONS);
- * the UI shows the uniform message on settle regardless.
+ * — for any email, existing or not (non-enumerating, matching the backend posture), which
+ * is why it settles rather than branching on success.
  */
 export function ForgotPasswordPage(): JSX.Element {
   // Reuses the `{ email }` shape/normalization of the resend contract.
