@@ -38,6 +38,21 @@ function toPrompt(messages: ChatMessage[]): string {
   return `Conversa até aqui:\n${lines.join('\n')}\n\nNova pergunta do usuário:\n${last.content}`;
 }
 
+// Claude Code sometimes answers with its OWN status line instead of a model answer — a quota
+// or credit notice. It arrives as a perfectly successful result, so it would be streamed to the
+// owner and persisted as the assistant's answer, and then poison the next turn's history.
+// Observed live: "Usage credits are required for long context requests." on a turn that
+// succeeded on retry.
+const CLI_NOTICE =
+  /^(usage credits are required|credit balance is too low|you have reached your usage limit|claude usage limit reached)/i;
+
+/** Whether a "successful" result is really a CLI status line rather than an answer. */
+export function isCliStatusNotice(text: string): boolean {
+  const trimmed = text.trim();
+  // A real answer to a data question is longer and never opens with one of these.
+  return trimmed.length <= 300 && CLI_NOTICE.test(trimmed);
+}
+
 function categorize(errors: readonly string[]): AiConnectErrorCategory {
   const text = errors.join(' ').toLowerCase();
   if (/authenticat|oauth|unauthorized|401|not logged in|login/.test(text)) return 'invalid_key';
@@ -107,6 +122,10 @@ export function createAgentSdkChatModel(opts: AgentSdkChatModelOptions = {}): Ch
                 text = message.result;
                 handlers.onTextDelta(text);
               }
+              if (isCliStatusNotice(text)) {
+                console.warn(`[agent-sdk] CLI notice instead of an answer: ${text.slice(0, 200)}`);
+                return { outcome: 'error', category: 'rate_limited' };
+              }
               return { outcome: 'answered', text };
             }
             if (message.subtype === 'error_max_turns') return { outcome: 'step_limit' };
@@ -114,7 +133,10 @@ export function createAgentSdkChatModel(opts: AgentSdkChatModelOptions = {}): Ch
             return { outcome: 'error', category: categorize(message.errors) };
           }
         }
-        return text.length > 0 ? { outcome: 'answered', text } : { outcome: 'error', category: 'unknown' };
+        if (text.length === 0 || isCliStatusNotice(text)) {
+          return { outcome: 'error', category: text.length === 0 ? 'unknown' : 'rate_limited' };
+        }
+        return { outcome: 'answered', text };
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         console.warn(`[agent-sdk] run threw: ${message.slice(0, 500)}`);
