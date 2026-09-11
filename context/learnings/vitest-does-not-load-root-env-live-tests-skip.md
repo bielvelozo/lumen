@@ -15,8 +15,10 @@ The DB-facing suites are gated with `describe.skipIf(!process.env.MYSQL_URL)` / 
 
 Observed on 2026-09-05 while running the full suite as a baseline for the end-to-end client test (`[[../reports/2026-09-05-teste-funcional-cliente]]`). The `LIVE-VERIFICATION-PENDING` ledger in `DECISIONS.md` assumes these run "against local Docker before release", which only happens if someone exports the variables by hand.
 
+**Fixed on 2026-09-11** by `apps/api/vitest.config.ts` + `src/setup-test-env.ts`: the root `.env` is loaded before collection (without overriding a real shell export), and the API suite went from 44 skipped to 2 — only the two credit-spending Claude live tests remain gated. Vite had the mirror problem (it looks for `.env` next to the app, so the root `VITE_API_URL` was ignored and the client silently used its default); `envDir` now points at the repo root.
+
 ## How to Apply
 
-- Add a Vitest `setupFiles` entry (or `globalSetup`) in `apps/api` that loads the root `.env` with `dotenv` (never overriding already-set vars), so live tests run automatically whenever Docker is up.
-- Alternatively document the exact command (`dotenv -e ../../.env -- pnpm test`) in the commands catalog and make the release checklist call it out.
-- Treat "N skipped" in the local test summary as a signal, not noise.
+- Treat "N skipped" in the local test summary as a signal, not noise — that number hid every DB-facing assertion in the repo.
+- Loading `.env` into the test process also arms anything gated on a paid key: `ANTHROPIC_API_KEY` filled in `.env` turns on the live Claude validator test and spends credits. Keep it empty in subscription mode.
+- A monorepo with ONE root `.env` has to tell every tool where it is: the server (dotenv preload), Vitest (setupFiles), and Vite (`envDir`) each resolve it separately.
