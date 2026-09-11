@@ -131,13 +131,15 @@ export function makeDrizzleChatStore(db: Database): ChatStore {
     },
 
     async recentMessages(sessionId, orgId, limit) {
+      // RECENT, so the window is taken from the END of the conversation — an ascending LIMIT
+      // would hand the model the first turns and drop the question just asked.
       const rows = await db
         .select({ role: messages.role, content: messages.content })
         .from(messages)
         .where(and(eq(messages.sessionId, sessionId), eq(messages.orgId, orgId)))
-        .orderBy(asc(messages.createdAt))
+        .orderBy(desc(messages.createdAt))
         .limit(limit);
-      return rows;
+      return rows.reverse();
     },
   };
 }

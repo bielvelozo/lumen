@@ -1,4 +1,5 @@
-import type { FastifyInstance, preHandlerHookHandler } from 'fastify';
+import type { FastifyInstance, FastifyRequest, preHandlerHookHandler } from 'fastify';
+import { z } from 'zod';
 import { sendMessageRequestSchema, renameSessionRequestSchema, type ChatStreamEvent } from '@lumen/shared';
 import { getAuth } from '../auth/require-auth';
 import { validationErrorBody } from '../auth/http-validation';
@@ -9,6 +10,18 @@ import { CHAT_ERROR_MESSAGES } from './sanitize';
 export interface ChatRouteDeps {
   service: ChatService;
   chatStore: ChatStore;
+}
+
+const sessionIdParamsSchema = z.object({ sessionId: z.string().uuid() });
+
+/**
+ * The `:sessionId` as a UUID, or null. A path segment that isn't a UUID cannot be anyone's
+ * session, and handing it to Postgres raises a type error (22P02) that surfaces as a 500 — so
+ * it is answered like any other session that isn't the caller's: 404.
+ */
+function sessionIdOf(request: FastifyRequest): string | null {
+  const parsed = sessionIdParamsSchema.safeParse(request.params);
+  return parsed.success ? parsed.data.sessionId : null;
 }
 
 /**
@@ -37,7 +50,8 @@ export function registerChatRoutes(
   // A session's message history. A session that isn't the caller's → 404 (no existence leak).
   app.get('/chat/sessions/:sessionId/messages', { preHandler: requireAuth }, async (request, reply) => {
     const { orgId } = getAuth(request);
-    const { sessionId } = request.params as { sessionId: string };
+    const sessionId = sessionIdOf(request);
+    if (sessionId === null) return reply.code(404).send({ error: 'NotFound' });
     const history = await deps.chatStore.getMessages(sessionId, orgId);
     if (history === null) return reply.code(404).send({ error: 'NotFound' });
     return reply.code(200).send(history);
@@ -48,7 +62,8 @@ export function registerChatRoutes(
     const parsed = renameSessionRequestSchema.safeParse(request.body);
     if (!parsed.success) return reply.code(400).send(validationErrorBody(parsed.error));
     const { orgId } = getAuth(request);
-    const { sessionId } = request.params as { sessionId: string };
+    const sessionId = sessionIdOf(request);
+    if (sessionId === null) return reply.code(404).send({ error: 'NotFound' });
     const ok = await deps.chatStore.renameSession(sessionId, orgId, parsed.data.title);
     if (!ok) return reply.code(404).send({ error: 'NotFound' });
     return reply.code(200).send({ ok: true });
@@ -59,7 +74,8 @@ export function registerChatRoutes(
     if (!parsed.success) return reply.code(400).send(validationErrorBody(parsed.error));
 
     const { orgId, userId } = getAuth(request);
-    const { sessionId } = request.params as { sessionId: string };
+    const sessionId = sessionIdOf(request);
+    if (sessionId === null) return reply.code(404).send({ error: 'NotFound' });
 
     // Anti-IDOR: a session that isn't this org's resolves to nothing → 404 (no existence leak).
     const session = await deps.chatStore.getSessionForOrg(sessionId, orgId);
