@@ -116,6 +116,33 @@ describe('filtered_aggregate build', () => {
     expect(sql).not.toContain('decoys');
   });
 
+  it('a bare ISO date under `lte` covers the whole last day (same convention as the date bounds)', () => {
+    const prepared = prepareOk('filtered_aggregate', {
+      table: 'orders',
+      metric: { agg: 'count', column: 'id' },
+      filters: [
+        { column: 'created_at', op: 'gte', value: '2026-05-01' },
+        { column: 'created_at', op: 'lte', value: '2026-05-31' },
+      ],
+    });
+    const { params } = prepared.build(allowList);
+    // `gte` at midnight already includes the first day; `lte` at midnight would drop the last one.
+    expect(params).toEqual(['2026-05-01', '2026-05-31 23:59:59']);
+  });
+
+  it('leaves a non-date `lte` value and an explicit timestamp untouched', () => {
+    const prepared = prepareOk('filtered_aggregate', {
+      table: 'orders',
+      metric: { agg: 'sum', column: 'total' },
+      filters: [
+        { column: 'total', op: 'lte', value: '1000' },
+        { column: 'created_at', op: 'lte', value: '2026-05-31 12:00:00' },
+      ],
+    });
+    const { params } = prepared.build(allowList);
+    expect(params).toEqual(['1000', '2026-05-31 12:00:00']);
+  });
+
   it('omits the JOIN entirely when no relationship is requested', () => {
     const prepared = prepareOk('filtered_aggregate', {
       table: 'orders',

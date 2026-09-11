@@ -4,7 +4,7 @@ import {
   RESULT_ROW_LIMIT,
 } from '@lumen/shared';
 import { quoteIdent, qualified } from '../identifiers';
-import { aggExpr, filterFragment } from '../sql-fragments';
+import { aggExpr, filterFragment, filterValue } from '../sql-fragments';
 import type { ColumnNeed, NeedManifest, RelationshipNeed } from '../guard';
 import type { ExposedAllowList } from '../allow-list';
 import type { BuiltQuery, QueryFunctionDefinition } from '../types';
@@ -68,7 +68,7 @@ function build(p: FilteredAggregateParams, allowList: ExposedAllowList): BuiltQu
   const whereParts: string[] = [];
   for (const f of p.filters) {
     whereParts.push(filterFragment(qualified(p.table, f.column), f.op));
-    params.push(f.value); // every filter VALUE is bound
+    params.push(filterValue(f.op, f.value)); // every filter VALUE is bound
   }
 
   let sql = `SELECT ${selectParts.join(', ')} FROM ${fromClause}`;

@@ -36,3 +36,14 @@ const OP_SQL: Record<FilterOp, string> = { eq: '=', gte: '>=', lte: '<=' };
 export function filterFragment(quotedCol: string, op: FilterOp): string {
   return `${quotedCol} ${OP_SQL[op]} ?`;
 }
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * The value to bind for a filter. A bare ISO date under `lte` means "through the end of that
+ * day": bound as written it reads as midnight against a datetime column and silently drops the
+ * whole last day — the same full-day convention `aggregate_over_time` applies to its `to`.
+ */
+export function filterValue(op: FilterOp, value: string): string {
+  return op === 'lte' && ISO_DATE.test(value) ? `${value} 23:59:59` : value;
+}
