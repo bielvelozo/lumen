@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@lumen/api",
+        "exec",
+        "tsx",
+        "src/server.ts"
+      ],
+      "port": 3001,
+      "autoPort": false
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@lumen/web",
+        "dev"
+      ],
+      "port": 5173,
+      "autoPort": false
+    }
+  ]
+}

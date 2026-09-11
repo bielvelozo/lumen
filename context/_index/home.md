@@ -13,6 +13,7 @@ This vault contains all project-specific knowledge for Business Assistant: const
 - **[[learnings|Learnings MOC]]** — architecture, patterns, gotchas.
 - **[[conventions|Conventions MOC]]** — code style choices the team has made.
 - **[[rules|Rules MOC]]** — project-specific safety and workflow rules.
+- **[[../reports/2026-09-10-handoff-testes-e-correcoes|QA handoff (2026-09-10)]]** — current state of the end-to-end test pass: environment recipe, open findings in attack order, verification commands. Start here to continue testing or fixing. Full findings in [[../reports/2026-09-05-teste-funcional-cliente|the QA report]].
 
 ## How to use this vault
 
