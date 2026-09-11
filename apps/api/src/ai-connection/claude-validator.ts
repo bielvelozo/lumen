@@ -1,6 +1,6 @@
 import { generateText, APICallError } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
-import type { AiConnectErrorCategory, ClaudeModelId } from '@lumen/shared';
+import { redactSecretStrings, type AiConnectErrorCategory, type ClaudeModelId } from '@lumen/shared';
 
 /**
  * The result of proving a Claude key works against a chosen model. On failure we carry ONLY a
@@ -73,8 +73,31 @@ export function createAiSdkValidator(opts: { timeoutMs?: number } = {}): ClaudeV
         });
         return { outcome: 'valid' };
       } catch (error) {
-        return { outcome: 'invalid', category: categorizeProviderError(error) };
+        const category = categorizeProviderError(error);
+        console.warn(`[ai-connection] key validation failed (${category}): ${describeProviderError(error)}`);
+        return { outcome: 'invalid', category };
       }
     },
   };
+}
+
+// Operator-facing diagnostic for the server log only. Carries the HTTP status and the provider's
+// own error type/message (e.g. "credit balance is too low"), never the request — the key lives
+// only in the request headers, which are not part of the error. Secret-shaped substrings are
+// redacted anyway as a backstop.
+function describeProviderError(error: unknown): string {
+  if (APICallError.isInstance(error)) {
+    let detail = '';
+    if (typeof error.responseBody === 'string' && error.responseBody.length > 0) {
+      try {
+        const body = JSON.parse(error.responseBody) as { error?: { type?: string; message?: string } };
+        detail = ` type=${body.error?.type ?? '?'} message="${body.error?.message ?? ''}"`;
+      } catch {
+        detail = ` body=${error.responseBody.slice(0, 200)}`;
+      }
+    }
+    return redactSecretStrings(`status=${error.statusCode ?? 'none'}${detail}`);
+  }
+  if (error instanceof Error) return redactSecretStrings(`${error.name}: ${error.message}`);
+  return 'non-Error thrown';
 }
