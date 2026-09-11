@@ -68,11 +68,20 @@ export function registerChatRoutes(
     // Take over the socket and stream SSE events: text-delta* then exactly one done|error.
     reply.hijack();
     const raw = reply.raw;
-    raw.writeHead(200, {
+    // Hijacking bypasses Fastify's send path, so the CORS headers the plugin already set on
+    // `reply` must be copied by hand or the browser rejects the stream. Flushing sends them
+    // now instead of with the first delta (which can be tens of seconds away).
+    const headers: Record<string, string> = {
       'content-type': 'text/event-stream',
       'cache-control': 'no-cache',
       connection: 'keep-alive',
-    });
+    };
+    for (const name of ['access-control-allow-origin', 'access-control-allow-credentials', 'vary']) {
+      const value = reply.getHeader(name);
+      if (typeof value === 'string') headers[name] = value;
+    }
+    raw.writeHead(200, headers);
+    raw.flushHeaders();
     const write = (event: ChatStreamEvent): void => {
       raw.write(`data: ${JSON.stringify(event)}\n\n`);
     };
