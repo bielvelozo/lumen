@@ -79,11 +79,18 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
   // A sanitized last-resort error handler: report to Sentry (no-op when disabled) and return ONLY
   // the opaque request id — never a stack trace or internal detail.
   app.setErrorHandler((error, request, reply) => {
+    reply.header('x-request-id', String(request.id));
+    // Fastify's own client errors (malformed JSON, empty JSON body, oversized payload) carry a
+    // 4xx statusCode; they are the caller's fault, not an incident — never a 500, never Sentry.
+    const raw = (error as { statusCode?: unknown }).statusCode;
+    const statusCode = typeof raw === 'number' ? raw : 500;
+    if (statusCode >= 400 && statusCode < 500) {
+      return reply.code(statusCode).send({ error: 'BadRequest', requestId: request.id });
+    }
     Sentry.captureException(error, (scope) => {
       scope.setTag('request_id', String(request.id));
       return scope;
     });
-    reply.header('x-request-id', String(request.id));
     return reply.code(500).send({ error: 'InternalError', requestId: request.id });
   });
 

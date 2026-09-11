@@ -44,9 +44,13 @@ export async function apiFetch<T>(path: string, options: ApiRequestOptions = {})
   const init: RequestInit = {
     method: options.method ?? 'GET',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
   };
-  if (options.body !== undefined) init.body = JSON.stringify(options.body);
+  // A JSON content-type with an empty body is rejected by the API's parser (400), so the
+  // header travels only with an actual body.
+  if (options.body !== undefined) {
+    init.headers = { 'Content-Type': 'application/json' };
+    init.body = JSON.stringify(options.body);
+  }
   if (options.signal) init.signal = options.signal;
 
   const response = await fetch(`${API_BASE}${path}`, init);

@@ -20,12 +20,24 @@ afterEach(() => {
 });
 
 describe('apiFetch', () => {
-  it('always sends credentials:include and JSON headers', async () => {
+  it('always sends credentials:include; the JSON content-type travels only with a body', async () => {
     fetchMock.mockResolvedValueOnce(okJson({ status: 'ok' }));
     await apiFetch('/health');
-    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    expect(init.credentials).toBe('include');
-    expect((init.headers as Record<string, string>)['Content-Type']).toBe('application/json');
+    const bare = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(bare.credentials).toBe('include');
+    expect(bare.headers).toBeUndefined();
+    expect(bare.body).toBeUndefined();
+
+    fetchMock.mockResolvedValueOnce(okJson({ id: 's1' }));
+    await apiFetch('/chat/sessions', { method: 'POST' });
+    const bodyless = fetchMock.mock.calls[1]?.[1] as RequestInit;
+    expect(bodyless.headers).toBeUndefined();
+
+    fetchMock.mockResolvedValueOnce(okJson({ ok: true }));
+    await apiFetch('/auth/login', { method: 'POST', body: { email: 'a@b.com', password: 'x' } });
+    const withBody = fetchMock.mock.calls[2]?.[1] as RequestInit;
+    expect((withBody.headers as Record<string, string>)['Content-Type']).toBe('application/json');
+    expect(withBody.body).toBe(JSON.stringify({ email: 'a@b.com', password: 'x' }));
   });
 
   it('throws ApiError carrying the status + body on a non-2xx', async () => {
