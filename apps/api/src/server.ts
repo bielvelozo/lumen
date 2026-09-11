@@ -29,6 +29,7 @@ import { makeDrizzleChatStore } from './chat/chat.store';
 import { makeDrizzleFunctionLogStore } from './chat/function-log.store';
 import { createChatService } from './chat/chat.service';
 import { createAiSdkChatModel } from './chat/chat-model';
+import { createAgentSdkChatModel } from './chat/chat-model-agent-sdk';
 import { makeDrizzleAllowListAccessor } from './query-registry/allow-list';
 import { createMysql2QueryRunner } from './query-registry/query-runner';
 import { makeDrizzleAuditStore } from './audit/audit.store';
@@ -112,11 +113,20 @@ const exposureService = createExposureService({
 
 // Connect the AI — Claude BYO key (spec 11). Validation uses the Vercel AI SDK; the same
 // crypto module encrypts the key at rest. The plaintext key never leaves the service scope.
+const subscription =
+  env.AI_AUTH_MODE === 'subscription' ? { defaultModel: env.AI_SUBSCRIPTION_MODEL } : undefined;
+console.log(
+  subscription
+    ? `AI auth: Claude subscription via Agent SDK (default model ${subscription.defaultModel})`
+    : 'AI auth: per-org API keys',
+);
+
 const aiConnectionService = createAiConnectionService({
   store: makeDrizzleAiConnectionStore(db),
   validator: createAiSdkValidator(),
   encrypt: crypto.encrypt,
   decrypt: crypto.decrypt,
+  subscription,
 });
 
 // Chat orchestrator (spec 13) — ties Claude (Vercel AI SDK) + the query-function registry +
@@ -129,8 +139,11 @@ const chatService = createChatService({
   aiConnectionStore: makeDrizzleAiConnectionStore(db),
   allowListAccessor: makeDrizzleAllowListAccessor(db),
   runner: createMysql2QueryRunner({ decrypt: crypto.decrypt }),
-  modelPort: createAiSdkChatModel(),
+  modelPort: subscription
+    ? createAgentSdkChatModel({ oauthToken: env.CLAUDE_CODE_OAUTH_TOKEN || undefined })
+    : createAiSdkChatModel(),
   decrypt: crypto.decrypt,
+  subscription,
 });
 
 const app = buildApp({

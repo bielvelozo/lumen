@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { aiModelSchema } from './ai-contracts';
 
 /**
  * Decoded byte length of a standard (padded) base64 string, or `null` if the value
@@ -71,6 +72,12 @@ export const envSchema = z.object({
   // human/DNS step.
   RESEND_FROM_EMAIL: z.string().default('Lumen <onboarding@resend.dev>'),
   ANTHROPIC_API_KEY: z.string().default(''),
+  // `subscription` runs the chat through the Claude Agent SDK under the operator's own Claude
+  // Pro/Max login (local `claude` login or CLAUDE_CODE_OAUTH_TOKEN) instead of per-org API keys.
+  // Personal/demo deployments only — customers of a multi-tenant deployment keep BYO keys.
+  AI_AUTH_MODE: z.enum(['api_key', 'subscription']).default('api_key'),
+  CLAUDE_CODE_OAUTH_TOKEN: z.string().default(''),
+  AI_SUBSCRIPTION_MODEL: aiModelSchema.default('claude-sonnet-4-6'),
   // Observability (spec 15). Empty DSN = Sentry disabled (local dev boots without it).
   SENTRY_DSN: z.string().default(''),
   SENTRY_ENVIRONMENT: z.string().default('development'),

@@ -25,6 +25,8 @@ export interface AiConnectionServiceDeps {
   encrypt(plaintext: string): Buffer;
   decrypt(blob: Buffer): string;
   now?: () => Date;
+  /** When set, the org never pastes a key: state is a fixed "active" and connect is a no-op. */
+  subscription?: { defaultModel: ClaudeModelId };
 }
 
 export interface AiConnectionService {
@@ -63,6 +65,26 @@ export function createAiConnectionService(deps: AiConnectionServiceDeps): AiConn
 
   async function currentState(orgId: string): Promise<AiConnectState> {
     return rowToState(await deps.store.getState(orgId));
+  }
+
+  if (deps.subscription) {
+    const state: AiConnectState = {
+      provider: 'claude',
+      hasKey: true,
+      defaultModel: deps.subscription.defaultModel,
+      status: 'active',
+      lastValidatedAt: null,
+      lastError: null,
+      mode: 'subscription',
+    };
+    return {
+      async connect(): Promise<ConnectResult> {
+        return { outcome: 'connected', result: { state, error: null } };
+      },
+      async getState(): Promise<AiConnectState> {
+        return state;
+      },
+    };
   }
 
   return {

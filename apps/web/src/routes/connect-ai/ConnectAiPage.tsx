@@ -62,6 +62,31 @@ export function ConnectAiPage(): JSX.Element {
   const state = connection.data;
   const hasKey = state?.hasKey ?? false;
 
+  if (state?.mode === 'subscription') {
+    const modelLabel = CLAUDE_MODELS.find((m) => m.id === state.defaultModel)?.label ?? state.defaultModel;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 640 }}>
+        <div>
+          <h1 className="ds-display" style={{ margin: 0, fontSize: 'var(--text-xl)' }}>
+            IA (Claude)
+          </h1>
+          <p style={{ color: 'var(--c-text-2)', margin: '6px 0 0' }}>
+            Este servidor responde pela assinatura do Claude de quem o opera. Não é preciso colar chave.
+          </p>
+        </div>
+        <Card>
+          <p style={{ marginTop: 0 }}>
+            <strong>{STATUS_LABELS.active} — Claude</strong>
+            <span style={{ color: 'var(--c-text-2)' }}> · {modelLabel}</span>
+          </p>
+          <p style={{ color: 'var(--c-text-2)', margin: 0 }}>
+            Você pode trocar o modelo a cada pergunta no seletor do chat.
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
   const onSubmit = (e: FormEvent): void => {
     e.preventDefault();
     setKeyError(undefined);

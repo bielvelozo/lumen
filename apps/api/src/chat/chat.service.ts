@@ -25,6 +25,8 @@ export interface ChatServiceDeps {
   decrypt(blob: Buffer): string;
   maxSteps?: number;
   historyLimit?: number;
+  /** When set, no per-org key is loaded: the port authenticates with the operator's login. */
+  subscription?: { defaultModel: ClaudeModelId };
 }
 
 export interface SendMessageInput {
@@ -73,12 +75,18 @@ export function createChatService(deps: ChatServiceDeps): ChatService {
       });
       await deps.chatStore.touchSession(input.sessionId, input.orgId, deriveTitle(input.message));
 
-      // The Claude key must be connected + active; decrypt in-process (discarded after the call).
-      const aiConn = await deps.aiConnectionStore.getByOrg(input.orgId);
-      if (!aiConn || aiConn.status !== 'active') return fail('ai_not_connected');
-      const apiKey = deps.decrypt(aiConn.encryptedApiKey);
-      // The user's per-turn switcher choice wins, then the org default, then the curated default.
-      const model = input.modelOverride ?? (aiConn.defaultModel as ClaudeModelId | null) ?? DEFAULT_MODEL;
+      let apiKey = '';
+      let model: string;
+      if (deps.subscription) {
+        model = input.modelOverride ?? deps.subscription.defaultModel;
+      } else {
+        // The Claude key must be connected + active; decrypt in-process (discarded after the call).
+        const aiConn = await deps.aiConnectionStore.getByOrg(input.orgId);
+        if (!aiConn || aiConn.status !== 'active') return fail('ai_not_connected');
+        apiKey = deps.decrypt(aiConn.encryptedApiKey);
+        // The user's per-turn switcher choice wins, then the org default, then the curated default.
+        model = input.modelOverride ?? (aiConn.defaultModel as ClaudeModelId | null) ?? DEFAULT_MODEL;
+      }
 
       // Exposed tables (for the system prompt) — null when no DB connection; tools still refuse.
       const access = await deps.allowListAccessor.getByOrg(input.orgId);

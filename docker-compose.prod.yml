@@ -35,6 +35,9 @@ services:
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
+      AI_AUTH_MODE: ${AI_AUTH_MODE:-api_key}
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
+      AI_SUBSCRIPTION_MODEL: ${AI_SUBSCRIPTION_MODEL:-claude-sonnet-4-6}
     # The image already defines a HEALTHCHECK against GET /health.
     read_only: true
     security_opt:
