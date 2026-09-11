@@ -6,6 +6,7 @@ import { GlassPanel, Card, ChatBubble, Button } from '../../design-system/ui';
 import { useMessages, useChatReadiness, CHAT_KEYS } from '../../lib/chat-queries';
 import { createSession, streamMessage } from '../../lib/chat';
 import { SessionSidebar } from './SessionSidebar';
+import { Markdown } from './Markdown';
 import { GatingPanel, ErrorPanel, EmptyConversation } from './states';
 
 interface StreamState {
@@ -114,7 +115,7 @@ export function ChatPage(): JSX.Element {
 
           {messages.data?.map((m) => (
             <ChatBubble key={m.id} from={m.role === 'user' ? 'me' : 'them'}>
-              <span className="ds-num">{m.content}</span>
+              {m.role === 'assistant' ? <Markdown text={m.content} /> : <span className="ds-num">{m.content}</span>}
             </ChatBubble>
           ))}
 
@@ -122,7 +123,9 @@ export function ChatPage(): JSX.Element {
           {stream.userText && <ChatBubble from="me">{stream.userText}</ChatBubble>}
           {stream.inFlight && (
             <ChatBubble from="them">
-              <span aria-busy="true">{stream.assistantText || 'respondendo…'}</span>
+              <div aria-busy="true">
+                {stream.assistantText ? <Markdown text={stream.assistantText} /> : 'respondendo…'}
+              </div>
             </ChatBubble>
           )}
           {stream.error && <ErrorPanel code={stream.error.code} message={stream.error.message} />}

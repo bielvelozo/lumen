@@ -116,6 +116,23 @@ body{margin:0;font-family:var(--font-body);font-size:var(--text-base);color:var(
   border-top-left-radius:5px;color:var(--c-text);align-self:flex-start}
 .bubble--me{background:var(--c-accent);color:#fff;border-top-right-radius:5px;align-self:flex-end}
 
+/* markdown dentro da bolha — numeros em tabular, tabelas e listas legiveis na superficie solida */
+.md{font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.md>:first-child{margin-top:0}
+.md>:last-child{margin-bottom:0}
+.md p{margin:0 0 8px}
+.md ul,.md ol{margin:0 0 8px;padding-left:20px}
+.md li{margin:2px 0}
+.md h1,.md h2,.md h3{font-size:1em;margin:10px 0 4px}
+.md code{font-family:var(--font-mono,ui-monospace,monospace);font-size:.92em;background:var(--c-surface);border:1px solid var(--c-border);border-radius:4px;padding:0 4px}
+.md pre{background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:8px 10px;overflow-x:auto}
+.md pre code{border:0;padding:0;background:transparent}
+.md table{border-collapse:collapse;margin:4px 0 8px;display:block;overflow-x:auto;max-width:100%}
+.md th,.md td{border:1px solid var(--c-border);padding:4px 8px;text-align:left;white-space:nowrap}
+.md th{background:var(--c-surface);font-weight:var(--w-medium)}
+.md blockquote{margin:0 0 8px;padding-left:10px;border-left:3px solid var(--c-border);color:var(--c-text-2)}
+.md a{color:var(--c-accent)}
+
 /* ---- item de navegacao ---- */
 .nav-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:var(--radius-md);
   color:var(--c-text-2);text-decoration:none;font-size:var(--text-base);
