@@ -24,6 +24,7 @@ function build(opts: {
   testResult?: ConnectionTestResult;
   consent?: ConsentRecord | null;
   stored?: StoredConnection | null;
+  decryptThrows?: boolean;
 } = {}) {
   const upsert = vi.fn(async (_i: UpsertConnectionInput) => {});
   const updateStatus = vi.fn(async () => {});
@@ -46,7 +47,10 @@ function build(opts: {
       getCurrentConsentRecord,
     },
     encrypt: (plain: string) => Buffer.from(`enc:${plain}`),
-    decrypt: (blob: Buffer) => blob.toString('utf8'),
+    decrypt: (blob: Buffer) => {
+      if (opts.decryptThrows) throw new Error('MALFORMED_BLOB');
+      return blob.toString('utf8');
+    },
     now: () => new Date('2026-06-18T12:00:00Z'),
   };
   return { service: createDbConnectionService(deps), upsert, updateStatus, getByOrg, test };
@@ -131,5 +135,21 @@ describe('dbConnectionService.retest', () => {
   it('404s when there is no saved connection', async () => {
     const t = build({ stored: null });
     expect(await t.service.retest('org-1')).toEqual({ outcome: 'not_found' });
+  });
+
+  it('reports a stored password it can no longer decrypt as a failed connection, not a crash', async () => {
+    const t = build({ stored, decryptThrows: true });
+    const result = await t.service.retest('org-1');
+
+    expect(result.outcome).toBe('tested');
+    if (result.outcome === 'tested') {
+      expect(result.state.status).toBe('failed');
+      expect(result.state.lastError).toBe('auth_failed');
+    }
+    expect(t.test).not.toHaveBeenCalled(); // never dialed with an unusable credential
+    expect(t.updateStatus).toHaveBeenCalledWith(
+      'org-1',
+      expect.objectContaining({ status: 'failed', lastError: 'auth_failed' }),
+    );
   });
 });

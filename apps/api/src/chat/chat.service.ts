@@ -83,7 +83,12 @@ export function createChatService(deps: ChatServiceDeps): ChatService {
         // The Claude key must be connected + active; decrypt in-process (discarded after the call).
         const aiConn = await deps.aiConnectionStore.getByOrg(input.orgId);
         if (!aiConn || aiConn.status !== 'active') return fail('ai_not_connected');
-        apiKey = deps.decrypt(aiConn.encryptedApiKey);
+        try {
+          apiKey = deps.decrypt(aiConn.encryptedApiKey);
+        } catch {
+          // An unreadable stored key is a dead connection, not a 500.
+          return fail('ai_key_invalid');
+        }
         // The user's per-turn switcher choice wins, then the org default, then the curated default.
         model = input.modelOverride ?? (aiConn.defaultModel as ClaudeModelId | null) ?? DEFAULT_MODEL;
       }

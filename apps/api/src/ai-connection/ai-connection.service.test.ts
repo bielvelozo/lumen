@@ -169,3 +169,32 @@ describe('connect — re-validate stored key (no apiKey)', () => {
     expect(res.outcome === 'validation_failed' && res.result.error).toBe('network');
   });
 });
+
+describe('connect — the stored ciphertext can no longer be read', () => {
+  it('fails the connection instead of throwing, so the owner can just re-paste the key', async () => {
+    const { store, peek } = makeStore({
+      id: 'aic-1',
+      encryptedApiKey: Buffer.from('SEED_PLACEHOLDER_NOT_ENCRYPTED'),
+      defaultModel: MODEL,
+      status: 'active',
+    });
+    const validator = makeValidator({ outcome: 'valid' });
+    const service = createAiConnectionService({
+      store,
+      validator,
+      encrypt,
+      decrypt: () => {
+        throw new Error('MALFORMED_BLOB');
+      },
+      now: () => NOW,
+    });
+
+    const res = await service.connect('org-1', { model: MODEL }); // re-validate, no paste
+
+    expect(res.outcome).toBe('validation_failed');
+    if (res.outcome === 'validation_failed') expect(res.result.error).toBe('invalid_key');
+    expect(store.setFailed).toHaveBeenCalledWith('org-1', 'invalid_key');
+    expect(peek()?.status).toBe('failed');
+    expect(validator.validate).not.toHaveBeenCalled(); // nothing to validate
+  });
+});
