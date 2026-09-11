@@ -38,19 +38,22 @@ function toPrompt(messages: ChatMessage[]): string {
   return `Conversa até aqui:\n${lines.join('\n')}\n\nNova pergunta do usuário:\n${last.content}`;
 }
 
-// Claude Code sometimes answers with its OWN status line instead of a model answer — a quota
-// or credit notice. It arrives as a perfectly successful result, so it would be streamed to the
-// owner and persisted as the assistant's answer, and then poison the next turn's history.
-// Observed live: "Usage credits are required for long context requests." on a turn that
-// succeeded on retry.
-const CLI_NOTICE =
-  /^(usage credits are required|credit balance is too low|you have reached your usage limit|claude usage limit reached)/i;
+// Claude Code sometimes ends a turn with its OWN status line instead of a model answer, as a
+// perfectly successful result: no error subtype, no `errors`, nothing on stderr. Streamed to the
+// owner and persisted, it shows an English notice where a figure belongs and poisons the next
+// turn's history. Observed live: "Usage credits are required for long context requests." (which
+// answered fine on retry) and "Prompt is too long" (Haiku 4.5).
+const QUOTA_NOTICE = /^(usage credits are required|credit balance is too low|(you have reached|claude) .{0,20}usage limit)/i;
+const OTHER_NOTICE = /^(prompt is too long|context (window )?(is )?(too|low)|api error|invalid (api )?key|not logged in)/i;
 
-/** Whether a "successful" result is really a CLI status line rather than an answer. */
-export function isCliStatusNotice(text: string): boolean {
+/** How a "successful" result that is really a CLI status line should be reported — null if it is a real answer. */
+export function cliNoticeCategory(text: string): AiConnectErrorCategory | null {
   const trimmed = text.trim();
-  // A real answer to a data question is longer and never opens with one of these.
-  return trimmed.length <= 300 && CLI_NOTICE.test(trimmed);
+  // A real answer to a data question is long, in Portuguese, and never opens with one of these.
+  if (trimmed.length > 300) return null;
+  if (QUOTA_NOTICE.test(trimmed)) return 'rate_limited';
+  if (OTHER_NOTICE.test(trimmed)) return 'unknown';
+  return null;
 }
 
 function categorize(errors: readonly string[]): AiConnectErrorCategory {
@@ -122,9 +125,10 @@ export function createAgentSdkChatModel(opts: AgentSdkChatModelOptions = {}): Ch
                 text = message.result;
                 handlers.onTextDelta(text);
               }
-              if (isCliStatusNotice(text)) {
+              const notice = cliNoticeCategory(text);
+              if (notice) {
                 console.warn(`[agent-sdk] CLI notice instead of an answer: ${text.slice(0, 200)}`);
-                return { outcome: 'error', category: 'rate_limited' };
+                return { outcome: 'error', category: notice };
               }
               return { outcome: 'answered', text };
             }
@@ -133,10 +137,9 @@ export function createAgentSdkChatModel(opts: AgentSdkChatModelOptions = {}): Ch
             return { outcome: 'error', category: categorize(message.errors) };
           }
         }
-        if (text.length === 0 || isCliStatusNotice(text)) {
-          return { outcome: 'error', category: text.length === 0 ? 'unknown' : 'rate_limited' };
-        }
-        return { outcome: 'answered', text };
+        if (text.length === 0) return { outcome: 'error', category: 'unknown' };
+        const notice = cliNoticeCategory(text);
+        return notice ? { outcome: 'error', category: notice } : { outcome: 'answered', text };
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         console.warn(`[agent-sdk] run threw: ${message.slice(0, 500)}`);

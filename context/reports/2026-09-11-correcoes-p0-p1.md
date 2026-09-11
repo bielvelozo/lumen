@@ -10,7 +10,7 @@ Sucede [[2026-09-10-handoff-testes-e-correcoes]], que continua valendo para **am
 
 ## 1. Situação em uma frase
 
-O trabalho pendente da rodada anterior foi commitado em 6 commits; os cinco itens da fila de ataque (P1-10, P0-2, P0-3, P0-4, P1-1) foram corrigidos, mais o P1-2 e o item de dev/infra dos testes; tudo verificado contra o ambiente real (Postgres + MySQL em Docker, navegador, modo assinatura); um bug novo apareceu durante a verificação e foi corrigido. **`pnpm test` agora soma 476 testes: 474 verdes e 2 pulados** (os dois que gastariam créditos da API).
+O trabalho pendente da rodada anterior foi commitado em 6 commits; os cinco itens da fila de ataque (P1-10, P0-2, P0-3, P0-4, P1-1) foram corrigidos, mais o P1-2 e o item de dev/infra dos testes; tudo verificado contra o ambiente real (Postgres + MySQL em Docker, navegador, modo assinatura); um bug novo apareceu durante a verificação e foi corrigido. **`pnpm test` agora soma 477 testes: 475 verdes e 2 pulados** (os dois que gastariam créditos da API).
 
 ## 2. O que foi corrigido
 
@@ -22,8 +22,8 @@ O trabalho pendente da rodada anterior foi commitado em 6 commits; os cinco iten
 | **P0-4** | `recentMessages` ordenava `asc` e depois `LIMIT 10`, entregando ao modelo as dez conversas **mais antigas** — a pergunta recém-feita ficava de fora. Agora a janela sai do fim. | Suite live nova do `chat.store`: com 14 turnos e janela de 10, tem de voltar 5..14. Revertendo a correção o teste falha com 1..10 (a forma exata do bug). |
 | **P1-1** | `:sessionId` fora do formato UUID chegava ao Postgres e virava 500 (erro 22P02). Agora é 404, antes de tocar o banco, nas três rotas. | `curl` nas três rotas → 404, 404, 404. Teste de rota confirma que nenhum store é chamado. |
 | **P1-2** | O seed gravava `SEED_PLACEHOLDER_NOT_ENCRYPTED` em `db_connections`/`ai_connections` e o dono demo levava 500 ao revalidar. O seed agora cria só org + dono. Além disso, os **três** pontos que descriptografam segredo tratam `CryptoError` como conexão inutilizável: IA vira `failed`/`invalid_key`, banco vira `failed`/`auth_failed` (sem nem discar), e um turno de chat responde `ai_key_invalid`. | Testes nos três serviços; a mesma falha estava a uma rotação de chave de acontecer em produção. |
-| **dev/infra** | Vitest não lia o `.env` da raiz, então toda suite `skipIf(!DATABASE_URL)` pulava mesmo com Docker no ar (44 pulados). `setupFiles` carrega o `.env` sem sobrescrever export real. Vite tinha o espelho do problema: `envDir` agora aponta para a raiz, então `VITE_API_URL` deixa de ser ignorado. | `pnpm test` sem exportar nada: **API 339 testes, 2 pulados** (antes 286/44). |
-| **novo** | Achado na verificação: o Agent SDK terminou um turno com `subtype: 'success'` cujo texto inteiro era `Usage credits are required for long context requests.` — foi transmitido ao dono e **persistido como resposta do assistente**, envenenando o histórico do turno seguinte. Agora um resultado curto que abre com um aviso conhecido do CLI vira `rate_limited`, que mostra a mensagem em pt-BR do próprio app e não grava nada. | Reproduzido ao vivo; a mesma pergunta acertou na repetição. Predicado coberto por teste. |
+| **dev/infra** | Vitest não lia o `.env` da raiz, então toda suite `skipIf(!DATABASE_URL)` pulava mesmo com Docker no ar (44 pulados). `setupFiles` carrega o `.env` sem sobrescrever export real. Vite tinha o espelho do problema: `envDir` agora aponta para a raiz, então `VITE_API_URL` deixa de ser ignorado. | `pnpm test` sem exportar nada: **API 340 verdes, 2 pulados** (antes 286 verdes e 44 pulados). |
+| **novo** | Achado na verificação: o Agent SDK terminou um turno com `subtype: 'success'` cujo texto inteiro era `Usage credits are required for long context requests.` — foi transmitido ao dono e **persistido como resposta do assistente**, envenenando o histórico do turno seguinte. Um segundo caso apareceu em seguida (`Prompt is too long`, com Haiku 4.5). Agora um resultado curto que abre com um aviso conhecido do CLI vira erro (`rate_limited` para a família de cota, `unknown` para o resto), mostra a mensagem em pt-BR do próprio app e **não grava nada**. | Os dois reproduzidos ao vivo; a pergunta de cota acertou na repetição. Predicado coberto por teste. |
 
 ## 3. Commits
 
@@ -52,8 +52,8 @@ Na ordem sugerida de ataque:
 
 Observações que valem para a apresentação:
 
-- O seletor de modelo da UI oferece Opus 4.8 / Sonnet 4.6 / Haiku 4.5, mas as respostas saíram sempre como `claude-sonnet-4-6`. **Não foi investigado** se o override por turno chega ao adaptador ou se o SDK ignora o modelo pedido — vale checar antes de demonstrar a troca de modelo.
-- Latência do turno segue em 20–100 s (uma a duas consultas). Haiku 4.5 como padrão continua sendo a ideia para a apresentação.
+- **Haiku 4.5 não funciona neste setup.** O seletor de modelo funciona (o override chega ao SDK — verificado: o turno rodou como `claude-haiku-4-5`), mas o turno voltou com `Prompt is too long`. Ou seja: a ideia de usar Haiku na apresentação para ganhar latência está **bloqueada** enquanto o prompt que o Agent SDK monta não for enxugado. Sonnet 4.6 (o padrão) responde normalmente.
+- Latência do turno segue em 20–100 s (uma a duas consultas), com Sonnet 4.6.
 - O e-mail de verificação e o de redefinição só saem com `RESEND_API_KEY`; sem ela o `consoleEmailSender` registra apenas o destinatário (nunca o link). Ou seja: **não dá para completar a redefinição pela UI em dev** sem pegar o token no banco. Para a demo, ou configura o Resend, ou mostra o fluxo com um token inserido à mão.
 
 ## 5. Detalhes que mudaram o ambiente
