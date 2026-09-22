@@ -70,6 +70,10 @@ export function createAgentSdkChatModel(opts: AgentSdkChatModelOptions = {}): Ch
   const env: Record<string, string | undefined> = {
     ...process.env,
     CLAUDE_AGENT_SDK_CLIENT_APP: 'lumen/0.0.0',
+    // A subscription login otherwise pulls in the account's claude.ai connectors (Gmail, Drive…):
+    // their tool definitions blow past the context window ("Usage credits are required for long
+    // context requests" / "Prompt is too long") and would expose them to the Lumen model.
+    ENABLE_CLAUDEAI_MCP_SERVERS: 'false',
     ...(opts.oauthToken ? { CLAUDE_CODE_OAUTH_TOKEN: opts.oauthToken } : {}),
   };
 
@@ -96,6 +100,7 @@ export function createAgentSdkChatModel(opts: AgentSdkChatModelOptions = {}): Ch
             tools: [],
             allowedTools,
             mcpServers: { [MCP_SERVER_NAME]: createSdkMcpServer({ name: MCP_SERVER_NAME, tools: mcpTools }) },
+            strictMcpConfig: true,
             permissionMode: 'default',
             includePartialMessages: true,
             persistSession: false,
