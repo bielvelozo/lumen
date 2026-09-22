@@ -9,6 +9,8 @@ diagramas no Lucid (links no fim). Aqui esta o "porque" condensado.
 Um dashboard onde o dono de um negocio conecta o banco de dados dele e uma IA,
 e faz perguntas em linguagem natural que sao respondidas sobre os dados reais
 do negocio dele. O diferencial e a camada de IA sobre dado estruturado.
+Alem de responder, o assistente propoe ideias de marketing, vendas e gestao
+embasadas nos numeros que ele consultou (parte central do produto, nao extra).
 
 ## Stack travada (v1)
 

@@ -682,6 +682,17 @@ with synthetic `APICallError`/abort instances. The real `createAiSdkValidator`
 (Vercel AI SDK + `@ai-sdk/anthropic`, one minimal completion, bounded timeout) is
 implemented but UNVERIFIED against the live Anthropic API until a BYO key is supplied.
 
+### 13-chat | advisory (marketing/sales ideas) is in scope
+2026-09-18 — RESOLVED by the owner: giving data-grounded marketing, sales and
+management ideas is a CORE capability, not out of scope. The system prompt now says
+so, tells the model to fetch the supporting figures before suggesting (without asking
+first), to cite the figure behind each idea, and to label its own proposals
+(discount %, targets, dates) as suggestions. It also forbids presenting a summed
+unit-price column as revenue (the registry cannot compute quantity x price).
+Default `maxSteps` raised 5 -> 8 for multi-figure advisory turns. Constitution,
+projeto.md, HANDOFF.md, AGENTS.md and spec 13 (scenario 10) updated. Follow-up
+candidate: a registry function that computes revenue per product server-side.
+
 ---
 
 ## Blocked / build-halted

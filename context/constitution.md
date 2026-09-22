@@ -14,6 +14,8 @@ It is built for owners of small and medium businesses who want answers from thei
 
 The differentiator is the one thing that must never be diluted: this is AI over **structured relational data**, not over documents. The number comes from the database, so it is exact — not a paraphrase, not an approximation, not a hallucination. The product is also deliberately generic: it serves any business with a database. It is not an e-commerce plugin, and it must not collapse into one.
 
+The assistant is also the owner's **data-grounded business advisor**, and this is core, not a nice-to-have. When the owner asks for an idea ("me dê uma ideia de promoção pra Black Friday", a campaign, pricing, stock, which channel to push), the assistant **fetches the relevant figures through the query functions first** and then proposes concrete marketing, sales and management actions, each tied to the number that justifies it. Refusing such a request as "out of scope" is a product bug. The precision invariant still applies in full: every figure comes from a function result, and anything the assistant proposes itself (a discount percentage, a target, a date, a forecast) is labeled as a suggestion, never presented as data.
+
 ## Scope guardrails
 
 Version 1 is intentionally narrow. The following are the locked v1 boundaries:

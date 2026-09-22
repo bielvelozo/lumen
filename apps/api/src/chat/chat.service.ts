@@ -10,7 +10,8 @@ import { buildSystemPrompt } from './system-prompt';
 import { chatErrorFromCategory, CHAT_ERROR_MESSAGES } from './sanitize';
 
 const EMPTY_ALLOW_LIST: ExposedAllowList = { tables: new Map(), relationships: [] };
-const DEFAULT_MAX_STEPS = 5;
+// Advisory questions ("ideia de promoção pra Black Friday") gather several figures before answering.
+const DEFAULT_MAX_STEPS = 8;
 const DEFAULT_HISTORY_LIMIT = 10;
 const TITLE_MAX = 60;
 
