@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { LogStatus } from '@lumen/shared';
 import { Card, Button } from '../../design-system/ui';
 import { useAuditLogs } from '../../lib/audit-queries';
+import { formatDateTime } from '../../lib/format';
 
 /**
  * The audit view (spec 15) — what the assistant queried for THIS org. All rows render on SOLID
@@ -75,7 +76,7 @@ export function AuditPage(): JSX.Element {
             <dt style={{ color: 'var(--c-text-2)' }}>Duração</dt>
             <dd style={{ margin: 0 }} className="ds-num">{row.durationMs != null ? `${row.durationMs} ms` : '—'}</dd>
             <dt style={{ color: 'var(--c-text-2)' }}>Quando</dt>
-            <dd style={{ margin: 0 }}>{row.createdAt}</dd>
+            <dd style={{ margin: 0 }}>{formatDateTime(row.createdAt)}</dd>
             {row.errorMessage && (
               <>
                 <dt style={{ color: 'var(--c-text-2)' }}>Motivo</dt>

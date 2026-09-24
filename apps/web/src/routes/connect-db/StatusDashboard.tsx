@@ -4,6 +4,7 @@ import type { DbConnectionState, ExposureResponse, ConnectionErrorCategory } fro
 import { Card, Button } from '../../design-system/ui';
 import { retestConnection } from '../../lib/connect-db';
 import { CONNECT_DB_KEYS } from '../../lib/connect-db-queries';
+import { formatDateTime } from '../../lib/format';
 import { ExposureStep } from './ExposureStep';
 import { CredentialForm } from './ConnectStep';
 
@@ -60,7 +61,7 @@ export function StatusDashboard({
         <p>
           <strong>{STATUS_LABELS[connection.status ?? ''] ?? connection.status}</strong>
           {connection.lastTestedAt && (
-            <span style={{ color: 'var(--c-text-2)' }}> · testado em {connection.lastTestedAt}</span>
+            <span style={{ color: 'var(--c-text-2)' }}> · testado em {formatDateTime(connection.lastTestedAt)}</span>
           )}
         </p>
         {connection.lastError && (
