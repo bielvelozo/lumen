@@ -19,4 +19,5 @@ Found on 2026-09-24 during an end-to-end browser pass of the chat in subscriptio
 
 - Any adapter that assembles a turn from streamed deltas must insert its own boundary between text blocks; the provider does not.
 - Emit the separator through the same `onTextDelta` path as the text, so what the owner saw streaming and what is stored stay identical.
-- The Vercel AI SDK path (`createAiSdkChatModel`, `textStream`) concatenates step texts the same way; it only runs in `api_key` mode, which could not be exercised here without API credits.
+- The Vercel AI SDK has the same shape: `textStream` concatenates the text of every step with nothing between them. `createAiSdkChatModel` now reads `fullStream` and inserts the same separator on each `text-start`; covered with a mocked `streamText`, since `api_key` mode cannot be exercised live without API credits.
+- Switching from `textStream` to `fullStream` changes error handling: `textStream` throws a provider error, `fullStream` delivers it as an `error` part. Rethrow it, or a failed turn finishes as an empty `answered`.

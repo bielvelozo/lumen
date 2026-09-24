@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { createSdkMcpServer, query, tool } from '@anthropic-ai/claude-agent-sdk';
 import { ZodEffects, ZodObject, type ZodRawShape, type ZodType } from 'zod';
 import type { AiConnectErrorCategory } from '@lumen/shared';
-import type { ChatMessage, ChatModelPort, ChatRunResult } from './chat-model';
+import { textBlockSeparator, type ChatMessage, type ChatModelPort, type ChatRunResult } from './chat-model';
 
 export interface AgentSdkChatModelOptions {
   oauthToken?: string;
@@ -54,13 +54,6 @@ export function cliNoticeCategory(text: string): AiConnectErrorCategory | null {
   if (QUOTA_NOTICE.test(trimmed)) return 'rate_limited';
   if (OTHER_NOTICE.test(trimmed)) return 'unknown';
   return null;
-}
-
-// Each assistant message after a tool call opens a new text block, and the deltas carry no
-// whitespace between blocks: "…ao mesmo tempo! 🔍Aqui está o resumo".
-export function textBlockSeparator(textSoFar: string): string {
-  if (textSoFar.trim().length === 0 || textSoFar.endsWith('\n\n')) return '';
-  return textSoFar.endsWith('\n') ? '\n' : '\n\n';
 }
 
 function categorize(errors: readonly string[]): AiConnectErrorCategory {

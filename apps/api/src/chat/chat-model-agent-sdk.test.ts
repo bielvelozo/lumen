@@ -1,18 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cliNoticeCategory, textBlockSeparator } from './chat-model-agent-sdk';
-
-describe('textBlockSeparator', () => {
-  it('opens a paragraph between the text before and after a tool call', () => {
-    expect(textBlockSeparator('Vou buscar as duas informações! 🔍')).toBe('\n\n');
-    expect(textBlockSeparator('Vou buscar.\n')).toBe('\n');
-  });
-
-  it('adds nothing before the first block or after an existing paragraph break', () => {
-    expect(textBlockSeparator('')).toBe('');
-    expect(textBlockSeparator('  ')).toBe('');
-    expect(textBlockSeparator('Vou buscar.\n\n')).toBe('');
-  });
-});
+import { cliNoticeCategory } from './chat-model-agent-sdk';
 
 describe('cliNoticeCategory', () => {
   it('recognizes the quota notices that arrive as a successful result', () => {
