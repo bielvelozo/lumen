@@ -56,6 +56,13 @@ export function cliNoticeCategory(text: string): AiConnectErrorCategory | null {
   return null;
 }
 
+// Each assistant message after a tool call opens a new text block, and the deltas carry no
+// whitespace between blocks: "…ao mesmo tempo! 🔍Aqui está o resumo".
+export function textBlockSeparator(textSoFar: string): string {
+  if (textSoFar.trim().length === 0 || textSoFar.endsWith('\n\n')) return '';
+  return textSoFar.endsWith('\n') ? '\n' : '\n\n';
+}
+
 function categorize(errors: readonly string[]): AiConnectErrorCategory {
   const text = errors.join(' ').toLowerCase();
   if (/authenticat|oauth|unauthorized|401|not logged in|login/.test(text)) return 'invalid_key';
@@ -117,6 +124,16 @@ export function createAgentSdkChatModel(opts: AgentSdkChatModelOptions = {}): Ch
           if (message.type === 'stream_event') {
             const event = message.event;
             if (
+              message.parent_tool_use_id === null &&
+              event.type === 'content_block_start' &&
+              event.content_block.type === 'text'
+            ) {
+              const separator = textBlockSeparator(text);
+              if (separator) {
+                text += separator;
+                handlers.onTextDelta(separator);
+              }
+            } else if (
               message.parent_tool_use_id === null &&
               event.type === 'content_block_delta' &&
               event.delta.type === 'text_delta'
