@@ -1,8 +1,9 @@
-import { useRef, useState, type KeyboardEvent } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { CLAUDE_MODELS, DEFAULT_MODEL, type ClaudeModelId, type ChatErrorCode } from '@lumen/shared';
-import { GlassPanel, Card, ChatBubble, Button } from '../../design-system/ui';
+import { GlassPanel, Card, ChatBubble, LogoMark } from '../../design-system/ui';
+import { LockIcon, SendIcon } from '../../design-system/icons';
 import { useMessages, useChatReadiness, CHAT_KEYS } from '../../lib/chat-queries';
 import { createSession, streamMessage } from '../../lib/chat';
 import { SessionSidebar } from './SessionSidebar';
@@ -23,10 +24,12 @@ const IDLE: StreamState = { userText: null, assistantText: '', inFlight: false, 
  * survives the create-then-navigate on the first message). Two panes: a GLASS sessions sidebar
  * (chrome) and a SOLID conversation column (bubbles, numbers) with a GLASS input pinned at the
  * bottom. No data/number/answer ever renders on glass. The client sends only a `session_id`.
+ * A question handed over from the home page (`location.state.ask`) is sent once on arrival.
  */
 export function ChatPage(): JSX.Element {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const readiness = useChatReadiness();
   const messages = useMessages(sessionId);
@@ -36,6 +39,7 @@ export function ChatPage(): JSX.Element {
   const [model, setModel] = useState<ClaudeModelId>(DEFAULT_MODEL);
   const [modelInit, setModelInit] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const handedOffRef = useRef(false);
 
   // Default the switcher to the org's default_model the first time readiness loads.
   if (!modelInit && !readiness.isPending) {
@@ -91,6 +95,15 @@ export function ChatPage(): JSX.Element {
     }
   }
 
+  const handedOff = (location.state as { ask?: unknown } | null)?.ask;
+  useEffect(() => {
+    if (typeof handedOff !== 'string' || handedOffRef.current || readiness.isPending || !readiness.ready) return;
+    handedOffRef.current = true;
+    navigate(location.pathname, { replace: true, state: null });
+    void send(handedOff);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fires once per handed-off question
+  }, [handedOff, readiness.isPending, readiness.ready]);
+
   const onInputKey = (e: KeyboardEvent<HTMLTextAreaElement>): void => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -101,59 +114,65 @@ export function ChatPage(): JSX.Element {
   const showEmpty = !sessionId && !stream.userText && (messages.data?.length ?? 0) === 0;
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gridTemplateRows: 'minmax(0, 1fr)', gap: 16, height: '100%', minHeight: 0 }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '280px minmax(0, 1fr)',
+        gridTemplateRows: 'minmax(0, 1fr)',
+        gap: 24,
+        height: 'calc(100dvh - 80px)',
+        minHeight: 0,
+      }}
+    >
       <SessionSidebar activeId={sessionId} />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0 }}>
         {/* SOLID message region — every bubble/number sits here, never on glass. */}
-        <div
-          aria-label="Conversa"
-          aria-live="polite"
-          style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, minHeight: 0 }}
-        >
-          {showEmpty && <EmptyConversation onExample={(q) => void send(q)} />}
+        <div aria-label="Conversa" aria-live="polite" style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+          <div style={{ maxWidth: 760, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 22, paddingBottom: 8 }}>
+            {showEmpty && <EmptyConversation onExample={(q) => void send(q)} />}
 
-          {messages.data?.map((m) => (
-            <ChatBubble key={m.id} from={m.role === 'user' ? 'me' : 'them'}>
-              {m.role === 'assistant' ? <Markdown text={m.content} /> : <span className="ds-num">{m.content}</span>}
-            </ChatBubble>
-          ))}
+            {messages.data?.map((m) =>
+              m.role === 'assistant' ? (
+                <AssistantMessage key={m.id}>
+                  <Markdown text={m.content} />
+                </AssistantMessage>
+              ) : (
+                <ChatBubble key={m.id} from="me">
+                  <span className="ds-num">{m.content}</span>
+                </ChatBubble>
+              ),
+            )}
 
-          {/* Optimistic + streaming overlay (cleared once the canonical query refetches). */}
-          {stream.userText && <ChatBubble from="me">{stream.userText}</ChatBubble>}
-          {stream.inFlight && (
-            <ChatBubble from="them">
-              <div aria-busy="true">
-                {stream.assistantText ? <Markdown text={stream.assistantText} /> : 'respondendo…'}
-              </div>
-            </ChatBubble>
-          )}
-          {stream.error && <ErrorPanel code={stream.error.code} message={stream.error.message} />}
+            {/* Optimistic + streaming overlay (cleared once the canonical query refetches). */}
+            {stream.userText && <ChatBubble from="me">{stream.userText}</ChatBubble>}
+            {stream.inFlight && (
+              <AssistantMessage>
+                <div aria-busy="true">
+                  {stream.assistantText ? (
+                    <Markdown text={stream.assistantText} />
+                  ) : (
+                    <span style={{ color: 'var(--c-text-3)' }}>respondendo…</span>
+                  )}
+                </div>
+              </AssistantMessage>
+            )}
+            {stream.error && <ErrorPanel code={stream.error.code} message={stream.error.message} />}
+
+            {messages.isError && (
+              <Card role="alert">
+                <p style={{ margin: 0, color: 'var(--c-text-2)' }}>Conversa não encontrada.</p>
+              </Card>
+            )}
+          </div>
         </div>
 
         {/* Chrome row: GLASS input + model switcher. Gated behind connection readiness. */}
-        {!readiness.isPending && !readiness.ready ? (
-          <GatingPanel dbActive={readiness.dbActive} aiActive={readiness.aiActive} />
-        ) : (
-          <GlassPanel style={{ padding: 12, borderRadius: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <label style={{ fontSize: 13, color: 'var(--c-text-2)', display: 'flex', gap: 6, alignItems: 'center' }}>
-                Modelo
-                <select
-                  aria-label="Modelo"
-                  value={model}
-                  onChange={(e) => setModel(e.target.value as ClaudeModelId)}
-                  style={{ padding: '4px 8px', borderRadius: 8, border: '1px solid var(--c-border)' }}
-                >
-                  {CLAUDE_MODELS.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+        <div style={{ width: '100%', maxWidth: 760, margin: '0 auto' }}>
+          {!readiness.isPending && !readiness.ready ? (
+            <GatingPanel dbActive={readiness.dbActive} aiActive={readiness.aiActive} />
+          ) : (
+            <GlassPanel style={{ padding: '14px 16px 12px', borderRadius: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <textarea
                 aria-label="Mensagem"
                 value={input}
@@ -163,28 +182,64 @@ export function ChatPage(): JSX.Element {
                 rows={2}
                 placeholder="Pergunte sobre seus dados…"
                 style={{
-                  flex: 1,
                   resize: 'none',
-                  padding: '8px 10px',
-                  borderRadius: 10,
-                  border: '1px solid var(--c-border)',
-                  background: 'var(--c-surface)',
+                  padding: '2px 4px',
+                  border: 0,
+                  outline: 'none',
+                  background: 'transparent',
                   color: 'var(--c-text)',
                   font: 'inherit',
+                  fontSize: 15.5,
+                  lineHeight: 1.5,
                 }}
               />
-              <Button type="button" disabled={stream.inFlight} onClick={() => void send(input)}>
-                {stream.inFlight ? 'respondendo…' : 'Enviar'}
-              </Button>
-            </div>
-          </GlassPanel>
-        )}
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <select
+                  aria-label="Modelo"
+                  className="input"
+                  value={model}
+                  onChange={(e) => setModel(e.target.value as ClaudeModelId)}
+                >
+                  {CLAUDE_MODELS.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+                <span
+                  className="ds-mono"
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--c-text-3)' }}
+                >
+                  <LockIcon size={13} />
+                  Somente leitura
+                </span>
+                <span style={{ flex: 1 }} />
+                <button
+                  type="button"
+                  className="btn btn--primary btn--icon"
+                  aria-label="Enviar"
+                  disabled={stream.inFlight}
+                  onClick={() => void send(input)}
+                  style={{ width: 40, height: 40, minHeight: 40 }}
+                >
+                  <SendIcon />
+                </button>
+              </div>
+            </GlassPanel>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
-        {messages.isError && (
-          <Card role="alert">
-            <p style={{ margin: 0, color: 'var(--c-text-2)' }}>Conversa não encontrada.</p>
-          </Card>
-        )}
+function AssistantMessage({ children }: { children: ReactNode }): JSX.Element {
+  return (
+    <div className="msg">
+      <LogoMark size={32} tile />
+      <div className="msg__body">
+        <span className="msg__name">Lumen</span>
+        <ChatBubble from="them">{children}</ChatBubble>
       </div>
     </div>
   );

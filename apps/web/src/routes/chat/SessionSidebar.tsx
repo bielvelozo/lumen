@@ -2,6 +2,7 @@ import { useState, type KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { GlassPanel, Button } from '../../design-system/ui';
+import { PlusIcon } from '../../design-system/icons';
 import { useSessions, CHAT_KEYS } from '../../lib/chat-queries';
 import { renameSession } from '../../lib/chat';
 
@@ -36,14 +37,14 @@ export function SessionSidebar({ activeId }: { activeId?: string }): JSX.Element
   return (
     <GlassPanel
       as="aside"
-      style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 12, borderRadius: 16, minWidth: 220, minHeight: 0 }}
+      style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 16, borderRadius: 18, minWidth: 0, minHeight: 0 }}
     >
-      <Button type="button" onClick={() => navigate('/chat')}>
+      <Button type="button" icon={<PlusIcon />} onClick={() => navigate('/chat')}>
         Nova conversa
       </Button>
       <nav
         aria-label="Conversas"
-        style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 8, flex: 1, minHeight: 0, overflowY: 'auto' }}
+        style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 10, flex: 1, minHeight: 0, overflowY: 'auto' }}
       >
         {sessions.isPending && <p style={{ color: 'var(--c-text-2)', fontSize: 13 }}>Carregando…</p>}
         {sessions.data?.length === 0 && (
@@ -59,10 +60,21 @@ export function SessionSidebar({ activeId }: { activeId?: string }): JSX.Element
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => onEditKey(e, s.id)}
               onBlur={() => commitRename(s.id)}
-              style={{ padding: '6px 8px', borderRadius: 8, border: '1px solid var(--c-border)' }}
+              className="input"
+              style={{ minHeight: 40, fontSize: 14 }}
             />
           ) : (
-            <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div
+              key={s.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                borderRadius: 10,
+                border: `1px solid ${s.id === activeId ? 'var(--c-border)' : 'transparent'}`,
+                background: s.id === activeId ? 'var(--c-surface)' : 'transparent',
+              }}
+            >
               <button
                 type="button"
                 aria-current={s.id === activeId ? 'page' : undefined}
@@ -70,12 +82,16 @@ export function SessionSidebar({ activeId }: { activeId?: string }): JSX.Element
                 style={{
                   flex: 1,
                   textAlign: 'left',
-                  padding: '8px 10px',
-                  borderRadius: 8,
+                  minWidth: 0,
+                  minHeight: 44,
+                  padding: '0 4px 0 12px',
                   border: 0,
                   cursor: 'pointer',
-                  background: s.id === activeId ? 'var(--c-surface-2)' : 'transparent',
+                  background: 'transparent',
                   color: 'var(--c-text)',
+                  font: 'inherit',
+                  fontSize: 14,
+                  fontWeight: s.id === activeId ? 500 : 400,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
@@ -90,7 +106,16 @@ export function SessionSidebar({ activeId }: { activeId?: string }): JSX.Element
                   setEditingId(s.id);
                   setDraft(s.title ?? '');
                 }}
-                style={{ border: 0, background: 'transparent', color: 'var(--c-text-3)', cursor: 'pointer', fontSize: 13 }}
+                style={{
+                  border: 0,
+                  background: 'transparent',
+                  color: 'var(--c-text-3)',
+                  cursor: 'pointer',
+                  font: 'inherit',
+                  fontSize: 12,
+                  padding: '0 10px',
+                  minHeight: 44,
+                }}
               >
                 renomear
               </button>

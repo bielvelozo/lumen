@@ -12,11 +12,11 @@ afterEach(cleanup);
 describe('glass-only-on-chrome', () => {
   it('renders glass chrome but never data surfaces under .glass', async () => {
     const { container } = renderRoutes({ initialEntries: ['/'], session: TEST_SESSION });
-    await screen.findByText('Bem-vindo ao Lumen');
+    await screen.findByText('Pergunte ao seu negócio');
 
-    // The chrome IS glass (sidebar + topbar) — at least two glass panels exist.
+    // The chrome IS glass (the ink sidebar).
     const glassPanels = container.querySelectorAll('.glass');
-    expect(glassPanels.length).toBeGreaterThanOrEqual(2);
+    expect(glassPanels.length).toBeGreaterThanOrEqual(1);
 
     // No data/reading surface is a descendant of any glass panel.
     expect(container.querySelectorAll('.glass .card, .glass .metric, .glass .bubble')).toHaveLength(0);
@@ -25,7 +25,7 @@ describe('glass-only-on-chrome', () => {
     const metricValue = screen.getByText('R$ 128.000');
     expect(metricValue.closest('.glass')).toBeNull();
 
-    // The welcome reading text is NOT inside glass either.
-    expect(screen.getByText('Bem-vindo ao Lumen').closest('.glass')).toBeNull();
+    // The question box is NOT inside glass either.
+    expect(screen.getByText('Pergunte ao seu negócio').closest('.glass')).toBeNull();
   });
 });

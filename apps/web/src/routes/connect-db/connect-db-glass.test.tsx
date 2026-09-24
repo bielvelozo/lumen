@@ -4,7 +4,7 @@ import { renderRoutes, TEST_SESSION } from '../../test-utils';
 
 /**
  * Constitution invariant 6 (glass-only-on-chrome) guard for the Connect-DB UI (RALPH §2f,
- * specs 06/10/14). Rendered inside the real protected shell (glass sidebar/topbar), the
+ * specs 06/10/14). Rendered inside the real protected shell (glass sidebar), the
  * connect-DB data — config, schema, status, error text — must sit on SOLID surfaces, never
  * under `.glass`.
  */
@@ -43,8 +43,8 @@ describe('connect-db glass-only-on-chrome', () => {
     // The dashboard rendered with the connection config visible.
     await screen.findByText('db.example.com');
 
-    // Chrome IS glass (sidebar + topbar).
-    expect(container.querySelectorAll('.glass').length).toBeGreaterThanOrEqual(2);
+    // Chrome IS glass (the ink sidebar).
+    expect(container.querySelectorAll('.glass').length).toBeGreaterThanOrEqual(1);
 
     // No data/reading surface is a descendant of any glass panel.
     expect(container.querySelectorAll('.glass .card, .glass .metric, .glass .bubble')).toHaveLength(0);

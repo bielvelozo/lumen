@@ -15,11 +15,10 @@ import {
 } from 'react';
 
 /* ============================================================
-   LUMEN UI — typed port of the design system (spec 06).
+   LUMEN UI — typed components of the design system (v2, "Luz sobre o dado").
    Import "design-system.css" once at the entrypoint. Golden rule:
    <GlassPanel> only on the chrome. Data lives on solid surfaces
-   (<Card>, <MetricCard>, <ChatBubble>). Class names are preserved
-   1:1 with the original so the visual contract is unchanged.
+   (<Card>, <MetricCard>, <ChatBubble>).
    ============================================================ */
 
 export type Theme = 'light' | 'dark';
@@ -105,14 +104,55 @@ export function ThemeToggle(): JSX.Element {
   );
 }
 
-/** Refractive background — rendered once at the root so glass has something to refract. */
-export function AppBackground(): JSX.Element {
+const MARK_SUN = 'M17.5 32a8.5 8.5 0 0 1 17 0z';
+const MARK_AXIS = 'M12 12v24h24';
+
+/**
+ * The Lumen mark: a chart's corner (the L) with the sun rising inside it. `tile` draws the
+ * app-icon version on an ink square; otherwise the axis takes `currentColor`.
+ */
+export function LogoMark({ size = 28, tile = false }: { size?: number; tile?: boolean }): JSX.Element {
+  if (tile) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" style={{ flex: 'none' }}>
+        <rect width="48" height="48" rx="12" fill="#15171c" />
+        <path d={MARK_SUN} fill="#f2a43a" />
+        <path d={MARK_AXIS} fill="none" stroke="#f5f3ee" strokeWidth={size < 40 ? 5 : 4.5} strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
   return (
-    <div className="ds-bg" aria-hidden="true">
-      <span className="ds-blob ds-blob--a" />
-      <span className="ds-blob ds-blob--b" />
+    <svg width={size} height={size} viewBox="8 8 32 32" aria-hidden="true" style={{ flex: 'none' }}>
+      <path d={MARK_SUN} fill="var(--c-accent)" />
+      <path d={MARK_AXIS} fill="none" stroke="currentColor" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Mark + "lumen" wordmark, set in the display serif. Inherits color from its parent. */
+export function Logo({ size = 32 }: { size?: number }): JSX.Element {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: size * 0.3 }}>
+      <LogoMark size={size * 0.9} />
+      <span className="ds-display" style={{ fontSize: size, lineHeight: 1 }}>
+        lumen
+      </span>
+    </span>
+  );
+}
+
+export function PageHeader({ title, lead, eyebrow }: { title: ReactNode; lead?: ReactNode; eyebrow?: ReactNode }): JSX.Element {
+  return (
+    <div className="page-head">
+      {eyebrow && <span className="eyebrow">{eyebrow}</span>}
+      <h1 className="page-title">{title}</h1>
+      {lead && <p className="page-lead">{lead}</p>}
     </div>
   );
+}
+
+export function Badge({ tone, children }: { tone: 'pos' | 'neg' | 'wait'; children: ReactNode }): JSX.Element {
+  return <span className={`badge badge--${tone}`}>{children}</span>;
 }
 
 type GlassPanelProps<T extends ElementType> = {

@@ -1,16 +1,36 @@
-import { Card } from '../../design-system/ui';
+import { Card, PageHeader } from '../../design-system/ui';
+import { CheckIcon } from '../../design-system/icons';
 import { useConsentStatus, useConnectionState, useExposure, deriveStep } from '../../lib/connect-db-queries';
 import { ConsentStep } from './ConsentStep';
 import { ConnectStep } from './ConnectStep';
 import { ExposureStep } from './ExposureStep';
 import { StatusDashboard } from './StatusDashboard';
 
-const STEP_LABELS: Record<string, string> = {
-  consent: '1. Termos',
-  connect: '2. Conexão',
-  exposure: '3. Tabelas',
-  dashboard: 'Conexão',
-};
+const STEPS = [
+  { key: 'consent', label: 'Termos' },
+  { key: 'connect', label: 'Conexão' },
+  { key: 'exposure', label: 'Tabelas' },
+] as const;
+
+function Steps({ current }: { current: string }): JSX.Element {
+  const index = STEPS.findIndex((s) => s.key === current);
+  return (
+    <ol className="steps" aria-label="Etapas">
+      {STEPS.map((s, i) => {
+        const state = i < index ? 'done' : i === index ? 'current' : 'todo';
+        return (
+          <li key={s.key} data-state={state} aria-current={state === 'current' ? 'step' : undefined}>
+            {i > 0 && <span className="steps__line" data-done={i <= index} aria-hidden="true" />}
+            <span className="steps__dot" aria-hidden="true">
+              {state === 'done' ? <CheckIcon size={14} /> : i + 1}
+            </span>
+            {s.label}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
 
 /**
  * Flow-2 wizard container. It owns NO step state — the current step is DERIVED from the
@@ -48,15 +68,12 @@ export function ConnectDatabasePage(): JSX.Element {
   const step = deriveStep(consent.data, connection.data, exposure.data);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 880 }}>
-      <div>
-        <h1 className="ds-display" style={{ margin: 0, fontSize: 'var(--text-xl)' }}>
-          {STEP_LABELS[step] ?? 'Conectar banco de dados'}
-        </h1>
-        <p style={{ color: 'var(--c-text-2)', margin: '6px 0 0' }}>
-          Conecte seu banco MySQL em modo somente leitura para perguntar sobre seus dados.
-        </p>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1080 }}>
+      <PageHeader
+        title={step === 'dashboard' ? 'Banco de dados' : 'Conectar banco de dados'}
+        lead="Conecte seu banco MySQL em modo somente leitura. Você escolhe as tabelas; o assistente só lê o que você liberar."
+      />
+      {step !== 'dashboard' && <Steps current={step} />}
 
       {step === 'consent' && <ConsentStep />}
       {step === 'connect' && <ConnectStep connection={connection.data} />}

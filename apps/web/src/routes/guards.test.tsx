@@ -15,12 +15,12 @@ describe('route guards', () => {
 
   it('admits an authenticated visitor to the protected home', async () => {
     renderRoutes({ initialEntries: ['/'], session: TEST_SESSION });
-    expect(await screen.findByText('Bem-vindo ao Lumen')).toBeInTheDocument();
+    expect(await screen.findByText('Pergunte ao seu negócio')).toBeInTheDocument();
   });
 
   it('bounces an authenticated visitor away from a public auth route to home', async () => {
     renderRoutes({ initialEntries: ['/login'], session: TEST_SESSION });
-    expect(await screen.findByText('Bem-vindo ao Lumen')).toBeInTheDocument();
+    expect(await screen.findByText('Pergunte ao seu negócio')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Entrar' })).not.toBeInTheDocument();
   });
 
@@ -32,7 +32,7 @@ describe('route guards', () => {
     );
     renderRoutes({ initialEntries: ['/'] }); // no seeded session -> queryFn runs, stays pending
     await waitFor(() => expect(screen.getByLabelText('Carregando')).toBeInTheDocument());
-    expect(screen.queryByText('Bem-vindo ao Lumen')).not.toBeInTheDocument();
+    expect(screen.queryByText('Pergunte ao seu negócio')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Entrar' })).not.toBeInTheDocument();
   });
 });
