@@ -24,6 +24,12 @@
       ],
       "port": 5173,
       "autoPort": false
+    },
+    {
+      "name": "design-system",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "5190", "--directory", "design-system"],
+      "port": 5190
     }
   ]
 }

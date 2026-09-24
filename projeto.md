@@ -68,21 +68,23 @@ Tom da marca: serio, confiavel e direto.
 
 ## Identidade visual
 
-Direcao: **vidro como acento sobre base limpa**. O efeito de vidro fosco
-(glassmorphism, no espirito do Liquid Glass da Apple) aparece so na moldura: barra
-de cima, menu lateral, campo do chat e menus. O dado (numeros, tabelas, respostas)
-vive sempre em superficie solida e de alto contraste.
+Direcao (v2, "Luz sobre o dado"): **papel, tinta e ambar**. A marca e o canto de um
+grafico (o L de Lumen) com um sol ambar nascendo dentro dele: o dado do negocio,
+iluminado. O vidro fosco continua so na moldura (menu lateral, lista de conversas,
+campo do chat e menus). O dado (numeros, tabelas, respostas) vive sempre em
+superficie solida e de alto contraste.
 
 Regra de ouro: nunca colocar numero ou texto de leitura sobre o vidro. Num produto
 de dados, legibilidade ganha de efeito visual.
 
-- **Acento:** azul #185fa5 (transmite confianca).
+- **Cores:** papel #F5F3EE (fundo), tinta #15171C (texto e moldura), ambar #F2A43A
+  (acao principal e destaque; texto sobre ele sempre em tinta).
 - **Tema:** claro e escuro, com toggle.
-- **Tipografia:** Space Grotesk (titulos e marca) + Inter (corpo e dado).
-- **Nome provisorio:** Lumen.
-- **Onde esta:** pasta `design-system/` (tokens em `design-system.css`, componentes
-  React em `ui.jsx`, guia em `README.md`, e um preview em
-  `preview-assistente-vidro.html`).
+- **Tipografia:** Instrument Serif (marca, titulos e numeros-chave) + Geist (interface
+  e dado) + Geist Mono (SQL e auditoria).
+- **Nome provisorio:** Lumen. Frase: "Pergunte ao seu negocio."
+- **Onde esta:** guia e marca em `design-system/` (`README.md`, `logo/`,
+  `preview.html`); codigo em `apps/web/src/design-system/`.
 
 ## Stack (resumo)
 

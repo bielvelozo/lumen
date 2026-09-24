@@ -67,8 +67,9 @@ embasadas nos numeros que ele consultou (parte central do produto, nao extra).
 ## Onde esta cada coisa
 
 - schema.sql ............... schema do banco da aplicacao (PostgreSQL), comentado.
-- design-system/ .......... tokens (design-system.css), componentes React (ui.jsx),
-  guia (README.md) e um preview (preview-assistente-vidro.html).
+- design-system/ .......... guia da identidade (README.md), marca em SVG (logo/),
+  copia de referencia dos tokens (design-system.css) e um preview (preview.html).
+  O codigo de verdade do design system esta em apps/web/src/design-system/.
 
 ## Lucid (comportamento, decisoes e fluxos)
 
