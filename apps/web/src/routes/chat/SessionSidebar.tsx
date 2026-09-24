@@ -36,12 +36,15 @@ export function SessionSidebar({ activeId }: { activeId?: string }): JSX.Element
   return (
     <GlassPanel
       as="aside"
-      style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 12, borderRadius: 16, minWidth: 220 }}
+      style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 12, borderRadius: 16, minWidth: 220, minHeight: 0 }}
     >
       <Button type="button" onClick={() => navigate('/chat')}>
         Nova conversa
       </Button>
-      <nav aria-label="Conversas" style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 8 }}>
+      <nav
+        aria-label="Conversas"
+        style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 8, flex: 1, minHeight: 0, overflowY: 'auto' }}
+      >
         {sessions.isPending && <p style={{ color: 'var(--c-text-2)', fontSize: 13 }}>Carregando…</p>}
         {sessions.data?.length === 0 && (
           <p style={{ color: 'var(--c-text-2)', fontSize: 13 }}>Nenhuma conversa ainda.</p>

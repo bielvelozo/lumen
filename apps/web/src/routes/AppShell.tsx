@@ -51,7 +51,7 @@ export function AppShell(): JSX.Element {
   }, [menuOpen]);
 
   return (
-    <div style={{ minHeight: '100dvh', display: 'grid', gridTemplateColumns: '240px 1fr' }}>
+    <div style={{ height: '100dvh', display: 'grid', gridTemplateColumns: '240px 1fr' }}>
       <GlassPanel
         as="aside"
         style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 16, margin: 12, borderRadius: 16 }}
@@ -68,7 +68,7 @@ export function AppShell(): JSX.Element {
         </nav>
       </GlassPanel>
 
-      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
         <GlassPanel
           as="header"
           style={{
@@ -125,7 +125,7 @@ export function AppShell(): JSX.Element {
           </div>
         </GlassPanel>
 
-        <main style={{ flex: 1, padding: '12px 24px 24px', minWidth: 0 }}>
+        <main style={{ flex: 1, padding: '12px 24px 24px', minWidth: 0, minHeight: 0, overflowY: 'auto' }}>
           <Outlet />
         </main>
       </div>

@@ -101,7 +101,7 @@ export function ChatPage(): JSX.Element {
   const showEmpty = !sessionId && !stream.userText && (messages.data?.length ?? 0) === 0;
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 16, height: '100%', minHeight: 0 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gridTemplateRows: 'minmax(0, 1fr)', gap: 16, height: '100%', minHeight: 0 }}>
       <SessionSidebar activeId={sessionId} />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0 }}>
