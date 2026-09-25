@@ -48,6 +48,19 @@ const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'expected an ISO date (YYYY-MM-DD)');
 
+/** The coarse type family a column must belong to for a given use (sum/avg, date bucketing). */
+export type TypeFamily = 'numeric' | 'temporal';
+
+const NUMERIC_TYPE = /\b(int|integer|tinyint|smallint|mediumint|bigint|decimal|numeric|dec|fixed|float|double|real|bit)\b/i;
+const TEMPORAL_TYPE = /\b(date|datetime|timestamp|time|year)\b/i;
+
+/** Classify a MySQL `COLUMN_TYPE` (from the exposure snapshot). The guard and the UI share it. */
+export function sqlTypeFamily(sqlType: string): TypeFamily | null {
+  if (NUMERIC_TYPE.test(sqlType)) return 'numeric';
+  if (TEMPORAL_TYPE.test(sqlType)) return 'temporal';
+  return null;
+}
+
 /** Max grouped rows a function may return (backend ceiling, v1 default). */
 export const RESULT_ROW_LIMIT = 1000;
 

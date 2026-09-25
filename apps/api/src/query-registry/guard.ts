@@ -1,8 +1,7 @@
-import type { RefusalCode } from '@lumen/shared';
+import { sqlTypeFamily, type RefusalCode, type TypeFamily } from '@lumen/shared';
 import type { ExposedAllowList } from './allow-list';
 
-/** The coarse type family a column must belong to for a given use (from the snapshot type). */
-export type TypeFamily = 'numeric' | 'temporal';
+export type { TypeFamily };
 
 /** A column a function references, with an optional required type family. */
 export interface ColumnNeed {
@@ -34,11 +33,8 @@ export interface NeedManifest {
 
 export type GuardResult = { ok: true } | { ok: false; code: RefusalCode; message: string };
 
-const NUMERIC = /\b(int|integer|tinyint|smallint|mediumint|bigint|decimal|numeric|dec|fixed|float|double|real|bit)\b/i;
-const TEMPORAL = /\b(date|datetime|timestamp|time|year)\b/i;
-
 function familyMatches(sqlType: string, family: TypeFamily): boolean {
-  return family === 'numeric' ? NUMERIC.test(sqlType) : TEMPORAL.test(sqlType);
+  return sqlTypeFamily(sqlType) === family;
 }
 
 /**
