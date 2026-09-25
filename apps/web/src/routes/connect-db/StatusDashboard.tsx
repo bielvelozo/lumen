@@ -7,6 +7,7 @@ import { CONNECT_DB_KEYS } from '../../lib/connect-db-queries';
 import { formatDateTime } from '../../lib/format';
 import { ExposureStep } from './ExposureStep';
 import { CredentialForm } from './ConnectStep';
+import { SalesMappingCard } from './SalesMappingCard';
 
 const ERROR_MESSAGES: Record<ConnectionErrorCategory, string> = {
   auth_failed: 'Falha de autenticação.',
@@ -131,6 +132,8 @@ export function StatusDashboard({
           </>
         )}
       </Card>
+
+      <SalesMappingCard exposure={exposure} />
     </div>
   );
 }

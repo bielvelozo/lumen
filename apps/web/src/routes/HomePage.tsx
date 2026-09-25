@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CLAUDE_MODELS } from '@lumen/shared';
-import { Badge, MetricCard } from '../design-system/ui';
+import { Badge } from '../design-system/ui';
 import { ChatIcon, DatabaseIcon, KeyIcon, SendIcon } from '../design-system/icons';
 import { useSessions, useChatReadiness } from '../lib/chat-queries';
 import { useConnectionState } from '../lib/connect-db-queries';
 import { formatDateTime } from '../lib/format';
+import { HomeSalesMetrics } from './HomeSalesMetrics';
 
 const EXAMPLES = ['Quanto vendi em maio?', 'Quantos pedidos tive no último mês?', 'Qual meu ticket médio?'];
 
@@ -22,9 +23,9 @@ function todayLabel(now: Date): string {
 }
 
 /**
- * Home behind the protected shell: the question box (hands off to the chat), a STATIC
- * illustration of the answers (the `MetricCard`s — no client-DB queries here), the latest
- * conversations and the connection status. Everything sits on solid surfaces, never on glass.
+ * Home behind the protected shell: the question box (hands off to the chat), the last closed
+ * month's real sales figures (spec 17), the latest conversations and the connection status.
+ * Everything sits on solid surfaces, never on glass.
  */
 export function HomePage(): JSX.Element {
   const navigate = useNavigate();
@@ -89,16 +90,7 @@ export function HomePage(): JSX.Element {
         </div>
       </form>
 
-      <section aria-labelledby="home-example" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <span id="home-example" className="eyebrow">
-          Exemplo do que o Lumen responde
-        </span>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
-          <MetricCard label="Vendas em maio" value="R$ 128.000" delta="+12% vs abril" trend="up" />
-          <MetricCard label="Pedidos" value="342" delta="+8% vs abril" trend="up" />
-          <MetricCard label="Ticket médio" value="R$ 374" delta="-3% vs abril" trend="down" />
-        </div>
-      </section>
+      <HomeSalesMetrics />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 20 }}>
         <RecentConversations />
