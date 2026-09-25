@@ -232,6 +232,20 @@ export const exposedRelationships = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// sales_mappings — which exposed table holds the owner's sales (Home metrics, spec 17).
+// Names only: the registry guard re-checks them against the current exposure on every read.
+// ---------------------------------------------------------------------------
+export const salesMappings = pgTable('sales_mappings', {
+  orgId: uuid('org_id')
+    .primaryKey()
+    .references(() => organizations.id, { onDelete: 'cascade' }),
+  tableName: text('table_name').notNull(),
+  amountColumn: text('amount_column').notNull(),
+  dateColumn: text('date_column').notNull(),
+  updatedAt: tz('updated_at').notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
 // ai_connections — the AI provider (Claude in v1). Secret key is `bytea`.
 // ---------------------------------------------------------------------------
 export const aiConnections = pgTable(

@@ -184,6 +184,20 @@ CREATE INDEX idx_exposed_rel_conn ON exposed_relationships(db_connection_id);
 
 
 -- ----------------------------------------------------------------------------
+-- sales_mappings  (qual tabela exposta guarda as vendas, para o painel inicial)
+-- ----------------------------------------------------------------------------
+-- Nomes, nao autoridade: o guard da registry revalida contra a exposicao atual
+-- a cada leitura, entao desexpor a tabela/coluna faz o painel parar de le-la.
+CREATE TABLE sales_mappings (
+    org_id         uuid PRIMARY KEY REFERENCES organizations(id) ON DELETE CASCADE,
+    table_name     text NOT NULL,
+    amount_column  text NOT NULL,          -- numerica: soma = faturamento
+    date_column    text NOT NULL,          -- temporal: define o mes do pedido
+    updated_at     timestamptz NOT NULL DEFAULT now()
+);
+
+
+-- ----------------------------------------------------------------------------
 -- ai_connections  (conexao com a IA, fluxo 3; Claude na v1)
 -- ----------------------------------------------------------------------------
 CREATE TABLE ai_connections (

@@ -35,6 +35,8 @@ import { createAgentSdkChatModel } from './chat/chat-model-agent-sdk';
 import { makeDrizzleAllowListAccessor } from './query-registry/allow-list';
 import { createMysql2QueryRunner } from './query-registry/query-runner';
 import { makeDrizzleAuditStore } from './audit/audit.store';
+import { createHomeMetricsService } from './home-metrics/home-metrics.service';
+import { makeDrizzleSalesMappingStore } from './home-metrics/sales-mapping.store';
 
 // Access token ~15 min; refresh 30 days (fixed lifetime, v1). See DECISIONS.md.
 const ACCESS_TTL_SECONDS = 15 * 60;
@@ -147,12 +149,14 @@ const aiConnectionService = createAiConnectionService({
 // the read-only MySQL. The same crypto module decrypts the Claude key + MySQL password
 // in-process per request; neither plaintext is ever logged or persisted.
 const chatStore = makeDrizzleChatStore(db);
+const allowListAccessor = makeDrizzleAllowListAccessor(db);
+const queryRunner = createMysql2QueryRunner({ decrypt: crypto.decrypt });
 const chatService = createChatService({
   chatStore,
   logStore: makeDrizzleFunctionLogStore(db),
   aiConnectionStore: makeDrizzleAiConnectionStore(db),
-  allowListAccessor: makeDrizzleAllowListAccessor(db),
-  runner: createMysql2QueryRunner({ decrypt: crypto.decrypt }),
+  allowListAccessor,
+  runner: queryRunner,
   modelPort: subscription
     ? createAgentSdkChatModel({ oauthToken: env.CLAUDE_CODE_OAUTH_TOKEN || undefined })
     : createAiSdkChatModel(),
@@ -174,6 +178,14 @@ const app = buildApp({
   aiConnection: { aiConnectionService, accessTokenService },
   chat: { service: chatService, chatStore, accessTokenService },
   audit: { auditStore: makeDrizzleAuditStore(db), accessTokenService },
+  homeMetrics: {
+    service: createHomeMetricsService({
+      store: makeDrizzleSalesMappingStore(db),
+      accessor: allowListAccessor,
+      runner: queryRunner,
+    }),
+    accessTokenService,
+  },
   // Cross-site CORS allow-list from env (comma-separated; explicit, never `*`).
   cors: { origins: env.WEB_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean) },
 });

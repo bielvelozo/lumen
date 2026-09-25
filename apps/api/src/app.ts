@@ -26,6 +26,8 @@ import type { ChatRouteDeps } from './chat/chat.route';
 import { registerChatRoutes } from './chat/chat.route';
 import type { AuditStore } from './audit/audit.store';
 import { registerAuditRoutes } from './audit/audit.route';
+import type { HomeMetricsService } from './home-metrics/home-metrics.service';
+import { registerHomeMetricsRoutes } from './home-metrics/home-metrics.route';
 
 /**
  * Dependencies injected into the app. Optional so `/health` (and the existing
@@ -59,6 +61,11 @@ export interface AppDeps {
   /** Audit read endpoint (spec 15). `requireAuth` from the JWT. */
   audit?: {
     auditStore: AuditStore;
+    accessTokenService: AccessTokenService;
+  };
+  /** Sales mapping + Home metrics (spec 17). `requireAuth` from the JWT. */
+  homeMetrics?: {
+    service: HomeMetricsService;
     accessTokenService: AccessTokenService;
   };
   /**
@@ -126,7 +133,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
 
   // The cookie plugin must load ONCE, before any route/requireAuth that reads cookies.
   // Register it if any cookie-dependent feature is wired.
-  if (deps.auth || deps.dbConnection || deps.aiConnection || deps.chat || deps.audit) {
+  if (deps.auth || deps.dbConnection || deps.aiConnection || deps.chat || deps.audit || deps.homeMetrics) {
     app.register(cookie);
   }
 
@@ -158,6 +165,11 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
   if (deps.audit) {
     const requireAuth = makeRequireAuth(deps.audit.accessTokenService);
     registerAuditRoutes(app, deps.audit.auditStore, requireAuth);
+  }
+
+  if (deps.homeMetrics) {
+    const requireAuth = makeRequireAuth(deps.homeMetrics.accessTokenService);
+    registerHomeMetricsRoutes(app, deps.homeMetrics.service, requireAuth);
   }
 
   return app;
