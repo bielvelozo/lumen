@@ -10,7 +10,8 @@ import { buildSystemPrompt } from './system-prompt';
 import { chatErrorFromCategory, CHAT_ERROR_MESSAGES } from './sanitize';
 
 const EMPTY_ALLOW_LIST: ExposedAllowList = { tables: new Map(), relationships: [] };
-const DEFAULT_MAX_STEPS = 5;
+// Advisory questions ("ideia de promoção pra Black Friday") gather several figures before answering.
+const DEFAULT_MAX_STEPS = 8;
 const DEFAULT_HISTORY_LIMIT = 10;
 const TITLE_MAX = 60;
 
@@ -25,6 +26,8 @@ export interface ChatServiceDeps {
   decrypt(blob: Buffer): string;
   maxSteps?: number;
   historyLimit?: number;
+  /** When set, no per-org key is loaded: the port authenticates with the operator's login. */
+  subscription?: { defaultModel: ClaudeModelId };
 }
 
 export interface SendMessageInput {
@@ -73,12 +76,23 @@ export function createChatService(deps: ChatServiceDeps): ChatService {
       });
       await deps.chatStore.touchSession(input.sessionId, input.orgId, deriveTitle(input.message));
 
-      // The Claude key must be connected + active; decrypt in-process (discarded after the call).
-      const aiConn = await deps.aiConnectionStore.getByOrg(input.orgId);
-      if (!aiConn || aiConn.status !== 'active') return fail('ai_not_connected');
-      const apiKey = deps.decrypt(aiConn.encryptedApiKey);
-      // The user's per-turn switcher choice wins, then the org default, then the curated default.
-      const model = input.modelOverride ?? (aiConn.defaultModel as ClaudeModelId | null) ?? DEFAULT_MODEL;
+      let apiKey = '';
+      let model: string;
+      if (deps.subscription) {
+        model = input.modelOverride ?? deps.subscription.defaultModel;
+      } else {
+        // The Claude key must be connected + active; decrypt in-process (discarded after the call).
+        const aiConn = await deps.aiConnectionStore.getByOrg(input.orgId);
+        if (!aiConn || aiConn.status !== 'active') return fail('ai_not_connected');
+        try {
+          apiKey = deps.decrypt(aiConn.encryptedApiKey);
+        } catch {
+          // An unreadable stored key is a dead connection, not a 500.
+          return fail('ai_key_invalid');
+        }
+        // The user's per-turn switcher choice wins, then the org default, then the curated default.
+        model = input.modelOverride ?? (aiConn.defaultModel as ClaudeModelId | null) ?? DEFAULT_MODEL;
+      }
 
       // Exposed tables (for the system prompt) — null when no DB connection; tools still refuse.
       const access = await deps.allowListAccessor.getByOrg(input.orgId);

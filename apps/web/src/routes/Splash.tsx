@@ -1,7 +1,9 @@
+import { LogoMark } from '../design-system/ui';
+
 /**
  * Minimal full-screen splash shown while the `/auth/me` bootstrap query is pending — so a
  * visitor never sees a flash of the login page or of protected content before auth is
- * known. Solid surface, brand wordmark only (no data, no glass).
+ * known. Solid surface, brand mark only (no data, no glass).
  */
 export function Splash(): JSX.Element {
   return (
@@ -10,8 +12,8 @@ export function Splash(): JSX.Element {
       aria-label="Carregando"
       style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center' }}
     >
-      <span className="ds-display" style={{ fontSize: 'var(--text-xl)', opacity: 0.7 }}>
-        Lumen
+      <span style={{ opacity: 0.8 }}>
+        <LogoMark size={56} tile />
       </span>
     </main>
   );

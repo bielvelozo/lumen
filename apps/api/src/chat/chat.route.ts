@@ -1,4 +1,5 @@
-import type { FastifyInstance, preHandlerHookHandler } from 'fastify';
+import type { FastifyInstance, FastifyRequest, preHandlerHookHandler } from 'fastify';
+import { z } from 'zod';
 import { sendMessageRequestSchema, renameSessionRequestSchema, type ChatStreamEvent } from '@lumen/shared';
 import { getAuth } from '../auth/require-auth';
 import { validationErrorBody } from '../auth/http-validation';
@@ -9,6 +10,18 @@ import { CHAT_ERROR_MESSAGES } from './sanitize';
 export interface ChatRouteDeps {
   service: ChatService;
   chatStore: ChatStore;
+}
+
+const sessionIdParamsSchema = z.object({ sessionId: z.string().uuid() });
+
+/**
+ * The `:sessionId` as a UUID, or null. A path segment that isn't a UUID cannot be anyone's
+ * session, and handing it to Postgres raises a type error (22P02) that surfaces as a 500 — so
+ * it is answered like any other session that isn't the caller's: 404.
+ */
+function sessionIdOf(request: FastifyRequest): string | null {
+  const parsed = sessionIdParamsSchema.safeParse(request.params);
+  return parsed.success ? parsed.data.sessionId : null;
 }
 
 /**
@@ -37,7 +50,8 @@ export function registerChatRoutes(
   // A session's message history. A session that isn't the caller's → 404 (no existence leak).
   app.get('/chat/sessions/:sessionId/messages', { preHandler: requireAuth }, async (request, reply) => {
     const { orgId } = getAuth(request);
-    const { sessionId } = request.params as { sessionId: string };
+    const sessionId = sessionIdOf(request);
+    if (sessionId === null) return reply.code(404).send({ error: 'NotFound' });
     const history = await deps.chatStore.getMessages(sessionId, orgId);
     if (history === null) return reply.code(404).send({ error: 'NotFound' });
     return reply.code(200).send(history);
@@ -48,7 +62,8 @@ export function registerChatRoutes(
     const parsed = renameSessionRequestSchema.safeParse(request.body);
     if (!parsed.success) return reply.code(400).send(validationErrorBody(parsed.error));
     const { orgId } = getAuth(request);
-    const { sessionId } = request.params as { sessionId: string };
+    const sessionId = sessionIdOf(request);
+    if (sessionId === null) return reply.code(404).send({ error: 'NotFound' });
     const ok = await deps.chatStore.renameSession(sessionId, orgId, parsed.data.title);
     if (!ok) return reply.code(404).send({ error: 'NotFound' });
     return reply.code(200).send({ ok: true });
@@ -59,7 +74,8 @@ export function registerChatRoutes(
     if (!parsed.success) return reply.code(400).send(validationErrorBody(parsed.error));
 
     const { orgId, userId } = getAuth(request);
-    const { sessionId } = request.params as { sessionId: string };
+    const sessionId = sessionIdOf(request);
+    if (sessionId === null) return reply.code(404).send({ error: 'NotFound' });
 
     // Anti-IDOR: a session that isn't this org's resolves to nothing → 404 (no existence leak).
     const session = await deps.chatStore.getSessionForOrg(sessionId, orgId);
@@ -68,11 +84,20 @@ export function registerChatRoutes(
     // Take over the socket and stream SSE events: text-delta* then exactly one done|error.
     reply.hijack();
     const raw = reply.raw;
-    raw.writeHead(200, {
+    // Hijacking bypasses Fastify's send path, so the CORS headers the plugin already set on
+    // `reply` must be copied by hand or the browser rejects the stream. Flushing sends them
+    // now instead of with the first delta (which can be tens of seconds away).
+    const headers: Record<string, string> = {
       'content-type': 'text/event-stream',
       'cache-control': 'no-cache',
       connection: 'keep-alive',
-    });
+    };
+    for (const name of ['access-control-allow-origin', 'access-control-allow-credentials', 'vary']) {
+      const value = reply.getHeader(name);
+      if (typeof value === 'string') headers[name] = value;
+    }
+    raw.writeHead(200, headers);
+    raw.flushHeaders();
     const write = (event: ChatStreamEvent): void => {
       raw.write(`data: ${JSON.stringify(event)}\n\n`);
     };

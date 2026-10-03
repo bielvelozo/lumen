@@ -7,6 +7,7 @@ import {
   type ConnectionErrorCategory,
 } from '@lumen/shared';
 import { Card, Button } from '../../design-system/ui';
+import { CopyIcon } from '../../design-system/icons';
 import { FormField } from '../../forms/FormField';
 import { getOnboardingScript, createConnection, retestConnection } from '../../lib/connect-db';
 import { ApiError, asValidationBody } from '../../lib/api-client';
@@ -26,10 +27,12 @@ const ERROR_MESSAGES: Record<ConnectionErrorCategory, string> = {
 /** Step 2/3/4 — onboarding script (solid code panel) + credential form + test result. */
 export function ConnectStep({ connection }: { connection: DbConnectionState }): JSX.Element {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {connection.status === 'failed' && <TestResult connection={connection} />}
-      <ScriptPanel />
-      <CredentialForm />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 24, alignItems: 'start' }}>
+        <CredentialForm />
+        <ScriptPanel />
+      </div>
     </div>
   );
 }
@@ -45,7 +48,7 @@ function TestResult({ connection }: { connection: DbConnectionState }): JSX.Elem
   });
   const message = connection.lastError ? ERROR_MESSAGES[connection.lastError] : ERROR_MESSAGES.unknown;
   return (
-    <Card>
+    <Card style={{ borderColor: 'var(--c-neg)', background: 'var(--c-neg-soft)' }}>
       <h2 style={{ marginTop: 0 }}>Teste de conexão falhou</h2>
       {/* Only the sanitized category — never a raw driver string. */}
       <p role="alert" aria-live="polite" style={{ color: 'var(--c-neg)' }}>
@@ -79,11 +82,11 @@ function ScriptPanel(): JSX.Element {
   return (
     <Card>
       <h2 style={{ marginTop: 0 }}>Script de usuário somente leitura</h2>
-      <p style={{ color: 'var(--c-text-2)' }}>
+      <p style={{ color: 'var(--c-text-2)', marginTop: 0 }}>
         Gere o script, rode-o no SEU servidor MySQL para criar um usuário com permissão de
         leitura apenas, escolha sua própria senha e nunca use o usuário root.
       </p>
-      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginBottom: 12 }}>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginBottom: 14 }}>
         <div style={{ flex: 1 }}>
           <FormField
             label="Nome do banco (opcional)"
@@ -97,24 +100,12 @@ function ScriptPanel(): JSX.Element {
         </Button>
       </div>
       {script.data && (
-        <div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 12 }}>
           {/* Solid code panel — the owner must read/copy this EXACTLY. Never on glass. */}
-          <pre
-            data-testid="onboarding-script"
-            style={{
-              background: 'var(--c-surface-2)',
-              border: '1px solid var(--c-border)',
-              borderRadius: 'var(--radius-md)',
-              padding: 12,
-              overflowX: 'auto',
-              fontSize: 13,
-              color: 'var(--c-text)',
-              whiteSpace: 'pre-wrap',
-            }}
-          >
+          <pre data-testid="onboarding-script" className="code" style={{ alignSelf: 'stretch' }}>
             {script.data.script}
           </pre>
-          <Button type="button" variant="ghost" onClick={onCopy}>
+          <Button type="button" variant="ghost" icon={<CopyIcon />} onClick={onCopy}>
             {copied ? 'Copiado!' : 'Copiar script'}
           </Button>
         </div>
@@ -189,7 +180,7 @@ export function CredentialForm({ onSaved }: { onSaved?: () => void } = {}): JSX.
         <FormField label="Banco de dados" name="databaseName" value={values.databaseName ?? ''} error={errors.databaseName} onChange={set('databaseName')} />
         <FormField label="Usuário (somente leitura)" name="username" value={values.username ?? ''} error={errors.username} onChange={set('username')} autoComplete="off" />
         <FormField label="Senha" name="password" type="password" value={values.password ?? ''} error={errors.password} onChange={set('password')} autoComplete="off" />
-        <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 14 }}>
+        <label style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 14 }}>
           <input type="checkbox" checked={sslEnabled} onChange={(e) => setSslEnabled(e.target.checked)} />
           Usar SSL/TLS
         </label>

@@ -16,8 +16,8 @@ interface FormFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'on
 export function FormField({ label, name, value, error, onChange, ...rest }: FormFieldProps): JSX.Element {
   const errorId = `${name}-error`;
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <label htmlFor={name} style={{ fontSize: 13, color: 'var(--c-text-2)', fontWeight: 500 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+      <label htmlFor={name} className="field-label">
         {label}
       </label>
       <input
@@ -27,20 +27,11 @@ export function FormField({ label, name, value, error, onChange, ...rest }: Form
         onChange={(e) => onChange(e.target.value)}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
-        style={{
-          padding: '9px 12px',
-          borderRadius: 'var(--radius-md)',
-          border: `1px solid ${error ? 'var(--c-neg)' : 'var(--c-border-strong)'}`,
-          background: 'var(--c-surface)',
-          color: 'var(--c-text)',
-          font: 'inherit',
-          fontSize: 'var(--text-base)',
-          width: '100%',
-        }}
+        className="input"
         {...rest}
       />
       {error && (
-        <span id={errorId} role="alert" style={{ color: 'var(--c-neg)', fontSize: 12 }}>
+        <span id={errorId} role="alert" style={{ color: 'var(--c-neg)', fontSize: 12.5 }}>
           {error}
         </span>
       )}

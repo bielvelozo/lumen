@@ -101,12 +101,36 @@ export function createDbConnectionService(deps: DbConnectionServiceDeps): DbConn
       const row = await deps.store.getByOrg(orgId);
       if (!row) return { outcome: 'not_found' };
 
+      const config = {
+        host: row.host,
+        port: row.port,
+        databaseName: row.databaseName,
+        username: row.username,
+        sslEnabled: row.sslEnabled,
+      };
+
+      let password: string;
+      try {
+        password = deps.decrypt(row.encryptedPassword);
+      } catch {
+        // The stored ciphertext can no longer be read (a rotated/wrong key, or a row that was
+        // never really encrypted). Report it like any other unusable credential so the owner
+        // can re-enter the password, instead of raising a 500.
+        const lastTestedAt = now();
+        await deps.store.updateStatus(orgId, {
+          status: 'failed',
+          lastTestedAt,
+          lastError: 'auth_failed',
+        });
+        return { outcome: 'tested', state: toState('failed', lastTestedAt, 'auth_failed', config) };
+      }
+
       const result = await deps.tester.test({
         host: row.host,
         port: row.port,
         database: row.databaseName,
         username: row.username,
-        password: deps.decrypt(row.encryptedPassword),
+        password,
         ssl: row.sslEnabled,
       });
 
@@ -125,16 +149,7 @@ export function createDbConnectionService(deps: DbConnectionServiceDeps): DbConn
       }
       const lastTestedAt = now();
       await deps.store.updateStatus(orgId, { status, lastTestedAt, lastError });
-      return {
-        outcome: 'tested',
-        state: toState(status, lastTestedAt, lastError, {
-          host: row.host,
-          port: row.port,
-          databaseName: row.databaseName,
-          username: row.username,
-          sslEnabled: row.sslEnabled,
-        }),
-      };
+      return { outcome: 'tested', state: toState(status, lastTestedAt, lastError, config) };
     },
 
     async getState(orgId): Promise<DbConnectionState> {

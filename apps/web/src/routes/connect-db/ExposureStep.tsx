@@ -114,12 +114,14 @@ function ExposurePicker({
                     name is exactly the table name. */}
                 <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <input type="checkbox" checked={tables.has(table.name)} onChange={() => toggleTable(table.name)} />
-                  <strong>{table.name}</strong>
+                  <strong className="ds-mono" style={{ fontSize: 14, fontWeight: 500 }}>
+                    {table.name}
+                  </strong>
                 </label>
                 <button
                   type="button"
                   onClick={() => setExpanded((e) => (e === table.name ? null : table.name))}
-                  style={{ marginLeft: 'auto', border: 0, background: 'transparent', color: 'var(--c-accent)', cursor: 'pointer', fontSize: 13 }}
+                  style={{ marginLeft: 'auto', border: 0, background: 'transparent', color: 'var(--c-accent-ink)', cursor: 'pointer', font: 'inherit', fontSize: 13, fontWeight: 500, minHeight: 36 }}
                 >
                   {expanded === table.name ? 'ocultar colunas' : 'ver colunas'}
                 </button>

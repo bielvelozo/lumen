@@ -17,6 +17,14 @@ O diferencial e a camada de IA sobre **dado estruturado** (banco relacional), na
 sobre documentos. O numero sai do banco, entao e exato. E o produto e deliberadamente
 generico (qualquer negocio com banco), nao mais um plugin de e-commerce.
 
+O assistente tambem e um **consultor de negocio baseado nos dados** — parte central
+do produto. Se o dono pede "me de uma ideia de promocao pra Black Friday", a IA
+primeiro consulta os numeros (mais e menos vendidos, vendas por mes e canal, ticket
+medio) e depois propoe acoes de marketing, vendas e gestao, cada uma citando o dado
+que a justifica. Recusar esse pedido como "fora do escopo" e bug. O que a IA propoe
+por conta propria (percentual de desconto, meta, data) aparece como sugestao, nunca
+como dado.
+
 ## O problema que resolve
 
 O dono do negocio tem os dados, mas a resposta esta presa atras de SQL, planilha ou
@@ -37,6 +45,8 @@ depender de relatorio pronto nem de quem saiba consultar banco.
 3. No chat, ele pergunta. A IA escolhe, de um **cardapio de funcoes de consulta
    pre-definidas**, qual usar (ela nunca escreve SQL livre). O backend roda a query
    real, devolve o resultado pra IA, e a IA redige a resposta com streaming.
+4. Se o pedido for de ideia ou estrategia, a IA roda as consultas que embasam a
+   sugestao antes de responder, e entrega ideias concretas amarradas aos numeros.
 
 ## Identidade do produto (valores que guiam tudo)
 
@@ -58,21 +68,23 @@ Tom da marca: serio, confiavel e direto.
 
 ## Identidade visual
 
-Direcao: **vidro como acento sobre base limpa**. O efeito de vidro fosco
-(glassmorphism, no espirito do Liquid Glass da Apple) aparece so na moldura: barra
-de cima, menu lateral, campo do chat e menus. O dado (numeros, tabelas, respostas)
-vive sempre em superficie solida e de alto contraste.
+Direcao (v2, "Luz sobre o dado"): **papel, tinta e ambar**. A marca e o canto de um
+grafico (o L de Lumen) com um sol ambar nascendo dentro dele: o dado do negocio,
+iluminado. O vidro fosco continua so na moldura (menu lateral, lista de conversas,
+campo do chat e menus). O dado (numeros, tabelas, respostas) vive sempre em
+superficie solida e de alto contraste.
 
 Regra de ouro: nunca colocar numero ou texto de leitura sobre o vidro. Num produto
 de dados, legibilidade ganha de efeito visual.
 
-- **Acento:** azul #185fa5 (transmite confianca).
+- **Cores:** papel #F5F3EE (fundo), tinta #15171C (texto e moldura), ambar #F2A43A
+  (acao principal e destaque; texto sobre ele sempre em tinta).
 - **Tema:** claro e escuro, com toggle.
-- **Tipografia:** Space Grotesk (titulos e marca) + Inter (corpo e dado).
-- **Nome provisorio:** Lumen.
-- **Onde esta:** pasta `design-system/` (tokens em `design-system.css`, componentes
-  React em `ui.jsx`, guia em `README.md`, e um preview em
-  `preview-assistente-vidro.html`).
+- **Tipografia:** Instrument Serif (marca, titulos e numeros-chave) + Geist (interface
+  e dado) + Geist Mono (SQL e auditoria).
+- **Nome provisorio:** Lumen. Frase: "Pergunte ao seu negocio."
+- **Onde esta:** guia e marca em `design-system/` (`README.md`, `logo/`,
+  `preview.html`); codigo em `apps/web/src/design-system/`.
 
 ## Stack (resumo)
 

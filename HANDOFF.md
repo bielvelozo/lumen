@@ -9,6 +9,8 @@ diagramas no Lucid (links no fim). Aqui esta o "porque" condensado.
 Um dashboard onde o dono de um negocio conecta o banco de dados dele e uma IA,
 e faz perguntas em linguagem natural que sao respondidas sobre os dados reais
 do negocio dele. O diferencial e a camada de IA sobre dado estruturado.
+Alem de responder, o assistente propoe ideias de marketing, vendas e gestao
+embasadas nos numeros que ele consultou (parte central do produto, nao extra).
 
 ## Stack travada (v1)
 
@@ -65,8 +67,9 @@ do negocio dele. O diferencial e a camada de IA sobre dado estruturado.
 ## Onde esta cada coisa
 
 - schema.sql ............... schema do banco da aplicacao (PostgreSQL), comentado.
-- design-system/ .......... tokens (design-system.css), componentes React (ui.jsx),
-  guia (README.md) e um preview (preview-assistente-vidro.html).
+- design-system/ .......... guia da identidade (README.md), marca em SVG (logo/),
+  copia de referencia dos tokens (design-system.css) e um preview (preview.html).
+  O codigo de verdade do design system esta em apps/web/src/design-system/.
 
 ## Lucid (comportamento, decisoes e fluxos)
 

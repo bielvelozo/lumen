@@ -1,117 +1,96 @@
-# Lumen — design system (v1)
+# Lumen — identidade visual (v2, "Luz sobre o dado")
 
-Tokens e componentes em React para o assistente de IA, na direção que você aprovou: **vidro fosco só na moldura, dado em superfície sólida de alto contraste**, acento azul, tema claro e escuro.
+**Papel, tinta e âmbar.** O produto responde perguntas com números exatos vindos do banco do cliente, e a identidade existe para servir essa leitura: fundo calmo, texto de alto contraste, uma única cor de destaque que funciona como "luz".
 
-São três arquivos:
+O código de verdade mora no app. Esta pasta guarda o guia, os arquivos da marca e uma referência visual:
 
-- `design-system.css` — tokens (cores claro/escuro, tipografia, raios, espaçamento, o material de vidro), base e classes dos componentes.
-- `ui.jsx` — os componentes React e o hook `useTheme`.
-- `README.md` — este guia.
-
-## Instalação no projeto React (Vite)
-
-1. Copie `design-system.css` e `ui.jsx` para `src/` (ex.: `src/design-system/`).
-2. Importe a CSS **uma vez** no entrypoint:
-
-```js
-// src/main.jsx
-import "./design-system/design-system.css";
-```
-
-3. As fontes (Space Grotesk + Inter) já vêm via `@import` no topo da CSS. Para carregar mais rápido, mova para um `<link>` no `index.html` e remova o `@import`.
-4. Renderize o fundo refrativo uma vez, no topo da árvore: `<AppBackground />`. Sem ele o vidro não tem o que refratar.
-
-```jsx
-import { AppBackground, ThemeToggle, MetricCard } from "./design-system/ui";
-
-export default function App() {
-  return (
-    <>
-      <AppBackground />
-      {/* seu app */}
-    </>
-  );
-}
-```
-
-Quer ver tudo junto rápido? Renderize `<Showcase />` numa rota.
-
-## Regra de ouro do vidro
-
-O efeito de vidro é a assinatura do produto, mas ele machuca legibilidade. Por isso:
-
-- **Use `<GlassPanel>` (ou a classe `.glass`) só na moldura:** sidebar, barra de cima, campo do chat, menus e sobreposições.
-- **Nunca** coloque número, tabela ou texto de leitura longa sobre vidro. Isso vai em `<Card>`, `<MetricCard>` e `<ChatBubble>`, que são superfícies sólidas.
-- O vidro precisa de algo atrás pra refratar: mantenha o `<AppBackground />` na página.
-
-## Tokens (resumo)
-
-Tudo é variável CSS, então muda sozinho no claro/escuro. Use as variáveis em vez de cravar cor.
-
-| Grupo | Variáveis |
+| Arquivo | O que é |
 |---|---|
-| Acento | `--c-accent`, `--c-accent-2`, `--c-accent-soft` |
-| Superfície | `--c-surface`, `--c-surface-2`, `--c-bg`, `--c-bg-2` |
-| Texto | `--c-text`, `--c-text-2`, `--c-text-3` |
-| Semântica | `--c-pos`, `--c-neg` |
-| Borda | `--c-border`, `--c-border-strong` |
-| Vidro | `--glass-bg`, `--glass-border`, `--glass-hi`, `--glass-blur` |
-| Tipografia | `--font-display`, `--font-body`, `--text-xs … --text-2xl`, `--w-regular/medium/bold` |
-| Espaço | `--space-1 … --space-8` |
-| Raio | `--radius-sm/md/lg/xl/pill` |
-| Movimento | `--dur`, `--ease` |
+| `README.md` | Este guia. |
+| `logo/` | Marca em SVG: símbolo, logo horizontal, ícone do app e favicon. |
+| `design-system.css` | Cópia de referência dos tokens e classes, usada pelo `preview.html`. |
+| `preview.html` | Todos os elementos numa página só. Abra direto no navegador (tem troca de tema). |
 
-Tipografia: `Space Grotesk` para títulos e marca (com restrição), `Inter` para corpo e dado. Números usam `font-variant-numeric: tabular-nums` (classe `.ds-num`) para alinhar.
+**Fonte da verdade:** `apps/web/src/design-system/` (`design-system.css`, `ui.tsx`, `icons.tsx`). Ao mudar um token no app, copie o CSS para cá de novo. O canvas com a identidade e as telas está em https://claude.ai/artifact/KMoYbzEBrQyUFnX4iuKJYz.
 
-## Componentes
+## Marca
 
-```jsx
-import {
-  useTheme, ThemeToggle, AppBackground, GlassPanel,
-  Button, Card, MetricCard, TextField, ChatBubble, Avatar, NavItem
-} from "./design-system/ui";
-```
+O **L** de Lumen é o canto de todo gráfico: o eixo onde os números moram. O **semicírculo âmbar** nascendo dentro dele é a luz que o assistente acende sobre os dados, ou seja, a resposta exata. O nome escrito é `lumen`, em minúsculas, na Instrument Serif. A frase da marca é *"Pergunte ao seu negócio."*
 
-- `useTheme()` → `{ theme, toggle, setTheme }`. Aplica `data-theme` no `<html>` e persiste no `localStorage`.
-- `<ThemeToggle />` → botão de sol/lua pronto.
-- `<AppBackground />` → o fundo refrativo (renderize uma vez).
-- `<GlassPanel as="aside" className="...">` → aplica o vidro. `as` troca a tag.
-- `<Button variant="primary | ghost" icon={<svg/>}>Texto</Button>` → sem texto, vira botão de ícone.
-- `<Card>` → superfície sólida pra conteúdo.
-- `<MetricCard label="Vendas em maio" value="R$ 128.000" delta="+12% vs abril" trend="up | down" />`
-- `<TextField icon={<svg/>} boxed placeholder="..." />`
-- `<ChatBubble from="me | them">...</ChatBubble>`
-- `<Avatar initials="GV" />`
-- `<NavItem active icon={<svg/>}>Chat</NavItem>`
+| Arquivo | Uso |
+|---|---|
+| `logo/lumen-mark.svg` | Símbolo sobre fundo claro (eixo tinta, sol âmbar). |
+| `logo/lumen-mark-inverse.svg` | Símbolo sobre fundo escuro (eixo papel). |
+| `logo/lumen-logo.svg` / `lumen-logo-inverse.svg` | Logo horizontal, símbolo + nome escrito. |
+| `logo/lumen-icon.svg` | Ícone do app: quadrado tinta de cantos arredondados. |
+| `logo/lumen-favicon.svg` | Favicon: o traço fica mais grosso para ler em 16 a 32 px. |
 
-Exemplo de moldura com vidro:
+- O nome escrito nos SVGs horizontais é texto na Instrument Serif, carregada do Google Fonts. Isso só funciona com o SVG aberto direto: dentro de `<img>` ou num editor, o navegador não baixa a fonte e ela cai na Georgia. Na web, prefira o símbolo + texto em HTML (como o `<Logo />` faz). Para impressão ou exportação, converta o texto em curvas num editor vetorial.
+- Em cima do âmbar, use a versão monocromática em tinta, com eixo e sol na mesma cor.
+- Não gire, não distorça, não troque as cores do símbolo e não coloque sombra nele.
+- No código, use os componentes `<LogoMark />` (com `tile` vira o ícone) e `<Logo />`, de `ui.tsx`.
 
-```jsx
-<GlassPanel as="header" style={{ borderRadius: 16, padding: "0 16px", display: "flex", alignItems: "center", gap: 14 }}>
-  <TextField icon={<SearchIcon />} placeholder="Buscar" style={{ flex: 1 }} />
-  <ThemeToggle />
-  <Avatar initials="GV" />
-</GlassPanel>
-```
+## Cores
 
-## Ícones
+Todas são variáveis CSS e mudam sozinhas no tema escuro (`data-theme="dark"` no `<html>`).
 
-Os componentes aceitam ícones como prop (`icon={<svg/>}`), então você escolhe a fonte. Recomendo `lucide-react` no projeto:
+| Nome | Claro | Escuro | Variável | Uso |
+|---|---|---|---|---|
+| Tinta | `#15171C` | `#EDEAE3` | `--c-text` | Texto; é também a cor da moldura (sidebar). |
+| Papel | `#F5F3EE` | `#101217` | `--c-bg` | Fundo do app. |
+| Superfície | `#FFFFFF` | `#181B22` | `--c-surface` | Cartões e dados. |
+| Âmbar | `#F2A43A` | `#F5B04D` | `--c-accent` | Ação principal, o sol, item ativo, foco. |
+| Âmbar escuro | `#8F5500` | `#F5B04D` | `--c-accent-ink` | Links e texto de destaque. |
+| Positivo | `#2B7A52` | `#5CC08D` | `--c-pos` | Alta, sucesso, conectado. |
+| Negativo | `#B3412A` | `#F0876E` | `--c-neg` | Queda, falha. |
 
-```bash
-npm i lucide-react
-```
+- Texto sobre âmbar é sempre **tinta** (`--c-on-accent`), nunca branco: branco sobre âmbar não passa em contraste.
+- Âmbar puro não serve como cor de texto sobre papel. Para links e texto, use `--c-accent-ink`.
+- Os cinzas de texto (`--c-text-2`, `--c-text-3`) passam em AA sobre papel e sobre branco. Não clareie.
+- Na moldura escura, os tokens são `--c-chrome*`. Os estados suaves (`--c-*-soft`) servem de fundo para badges e alertas.
 
-```jsx
-import { Search, Send } from "lucide-react";
-<TextField icon={<Search size={18} />} placeholder="Buscar" />
-<Button icon={<Send size={18} />} aria-label="Enviar" />
-```
+## Tipografia
 
-## Tema claro/escuro
+| Família | Papel | Regras |
+|---|---|---|
+| **Instrument Serif** | Marca, títulos de página, números-chave | Só a partir de 28 px, peso 400 (tem itálico). Classes `.page-title`, `.ds-display`, `.metric__value`. |
+| **Geist** | Interface, respostas, tabelas | 400, 500 e 600. Números de dado com `.ds-num` (algarismos tabulares). |
+| **Geist Mono** | SQL, auditoria, rótulos, metadados | Sempre pequeno (11 a 13 px). Classes `.ds-mono` e `.eyebrow`. |
 
-O tema é controlado pelo atributo `data-theme` no `<html>`. O `useTheme` cuida disso e do `localStorage`. Para forçar um tema sem o hook: `document.documentElement.setAttribute("data-theme", "dark")`.
+No app, as fontes vêm por `<link>` no `apps/web/index.html`.
 
-## Acessibilidade já embutida
+## Regra do vidro
 
-Foco visível (`:focus-visible`), `prefers-reduced-motion` respeitado, e contraste pensado pros dois temas. Ao criar telas novas, mantenha texto de dado fora do vidro pra não perder contraste.
+O vidro fosco continua restrito à **moldura**, e os dados ficam em **superfície sólida** (regra 6 do `AGENTS.md`, com a convenção em `context/conventions/glass-only-on-chrome.md`).
+
+- `.glass.glass--ink` → a sidebar escura.
+- `.glass` (papel fosco) → a lista de conversas, o campo do chat e os menus.
+- Número, tabela ou resposta nunca vão sobre vidro. Use `.card`, `.metric` e `.bubble`.
+
+Não há mais fundo com manchas coloridas: o fundo é o papel liso.
+
+## Componentes (`apps/web/src/design-system/ui.tsx`)
+
+| Componente | Classe | Nota |
+|---|---|---|
+| `ThemeProvider`, `useTheme`, `ThemeToggle` | — | Tema persistido no `localStorage`. |
+| `LogoMark`, `Logo` | — | A marca, em SVG inline. |
+| `PageHeader` | `.page-head` | Título serifado + descrição opcional. |
+| `GlassPanel` | `.glass` | Só na moldura. `className="glass--ink"` para a sidebar. |
+| `Button` | `.btn--primary` / `.btn--ghost` | Primário: âmbar com texto tinta. Altura mínima de 44 px. |
+| `Card` | `.card` | Superfície sólida para dados e formulários. |
+| `MetricCard` | `.metric` | Número serifado e variação num selo verde ou vermelho. |
+| `Badge` | `.badge--pos` / `--neg` / `--wait` | Estados de conexão e de consulta. |
+| `ChatBubble` | `.bubble--me` / `--them` | Balão do usuário em tinta; resposta em superfície sólida. |
+| `Avatar`, `NavItem`, `TextField` | — | Mantidos por compatibilidade. |
+
+Classes sem componente: `.chip` (sugestão de pergunta), `.input` e `.field-label`, `.table`, `.segmented`, `.steps` (etapas), `.code` (bloco de SQL), `.md` (markdown das respostas), `.msg` (linha de mensagem com o símbolo), `.eyebrow`.
+
+Os ícones ficam em `apps/web/src/design-system/icons.tsx`: SVG de traço 1,75 que herda a cor do texto, sem biblioteca externa. Ícone sozinho num botão precisa de `aria-label`.
+
+## Acessibilidade
+
+- Foco visível com anel âmbar (`:focus-visible`).
+- `prefers-reduced-motion` é respeitado.
+- Alvos de toque de 44 px.
+- Estados nunca dependem só da cor: badge sempre tem texto, e variação sempre tem sinal (`+12%`, `-3%`).

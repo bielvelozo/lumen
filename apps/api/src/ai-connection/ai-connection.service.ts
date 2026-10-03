@@ -25,6 +25,8 @@ export interface AiConnectionServiceDeps {
   encrypt(plaintext: string): Buffer;
   decrypt(blob: Buffer): string;
   now?: () => Date;
+  /** When set, the org never pastes a key: state is a fixed "active" and connect is a no-op. */
+  subscription?: { defaultModel: ClaudeModelId };
 }
 
 export interface AiConnectionService {
@@ -65,6 +67,26 @@ export function createAiConnectionService(deps: AiConnectionServiceDeps): AiConn
     return rowToState(await deps.store.getState(orgId));
   }
 
+  if (deps.subscription) {
+    const state: AiConnectState = {
+      provider: 'claude',
+      hasKey: true,
+      defaultModel: deps.subscription.defaultModel,
+      status: 'active',
+      lastValidatedAt: null,
+      lastError: null,
+      mode: 'subscription',
+    };
+    return {
+      async connect(): Promise<ConnectResult> {
+        return { outcome: 'connected', result: { state, error: null } };
+      },
+      async getState(): Promise<AiConnectState> {
+        return state;
+      },
+    };
+  }
+
   return {
     async connect(orgId, request): Promise<ConnectResult> {
       const existing = await deps.store.getByOrg(orgId);
@@ -79,7 +101,18 @@ export function createAiConnectionService(deps: AiConnectionServiceDeps): AiConn
         encryptedKey = deps.encrypt(plaintextKey);
       } else {
         if (!existing) return { outcome: 'no_connection' };
-        plaintextKey = deps.decrypt(existing.encryptedApiKey);
+        try {
+          plaintextKey = deps.decrypt(existing.encryptedApiKey);
+        } catch {
+          // The stored ciphertext can no longer be read (a rotated/wrong key, or a row that was
+          // never really encrypted). That is a dead connection, not a server fault — fail it, so
+          // the owner gets the same remedy as a bad key: paste it again.
+          await deps.store.setFailed(orgId, 'invalid_key');
+          return {
+            outcome: 'validation_failed',
+            result: { state: await currentState(orgId), error: 'invalid_key' },
+          };
+        }
       }
 
       const validation = await deps.validator.validate(plaintextKey, request.model);

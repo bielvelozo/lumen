@@ -10,8 +10,8 @@ const SECRET = 'chat-route-test-secret-at-least-32bytes!';
 const accessTokens = createAccessTokenService({ secret: SECRET, ttlSeconds: 900 });
 const ORG = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const USER = '11111111-1111-1111-1111-111111111111';
-const OWNED = 'sess-owned';
-const OTHER_ORG_SESSION = 'sess-other';
+const OWNED = '22222222-2222-2222-2222-222222222222';
+const OTHER_ORG_SESSION = '33333333-3333-3333-3333-333333333333';
 
 function buildChatApp(opts: { sendMessage?: ChatService['sendMessage'] } = {}) {
   const sendMessage = vi.fn(
@@ -89,6 +89,39 @@ describe('GET /chat/sessions/:id/messages', () => {
     expect((ok.json() as unknown[]).length).toBe(1);
     const other = await app.inject({ method: 'GET', url: `/chat/sessions/${OTHER_ORG_SESSION}/messages`, cookies: await cookie() });
     expect(other.statusCode).toBe(404);
+  });
+});
+
+describe(':sessionId that is not a UUID', () => {
+  it('404s on every session route instead of reaching the database', async () => {
+    const built = buildChatApp();
+    app = built.app;
+    const jar = await cookie();
+
+    const get = await app.inject({ method: 'GET', url: '/chat/sessions/not-a-uuid/messages', cookies: jar });
+    expect(get.statusCode).toBe(404);
+
+    const patch = await app.inject({
+      method: 'PATCH',
+      url: '/chat/sessions/not-a-uuid',
+      cookies: jar,
+      payload: { title: 'x' },
+    });
+    expect(patch.statusCode).toBe(404);
+
+    const post = await app.inject({
+      method: 'POST',
+      url: '/chat/sessions/not-a-uuid/messages',
+      cookies: jar,
+      payload: { message: 'quanto vendi?' },
+    });
+    expect(post.statusCode).toBe(404);
+
+    // Postgres would have raised 22P02 (invalid uuid input) and the handler a 500.
+    expect(built.chatStore.getMessages).not.toHaveBeenCalled();
+    expect(built.chatStore.renameSession).not.toHaveBeenCalled();
+    expect(built.chatStore.getSessionForOrg).not.toHaveBeenCalled();
+    expect(built.sendMessage).not.toHaveBeenCalled();
   });
 });
 

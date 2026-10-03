@@ -74,7 +74,7 @@ describe('LoginPage', () => {
     type('Senha', 'a-strong-pass-9');
     fireEvent.click(screen.getByRole('button', { name: 'Entrar' }));
 
-    expect(await screen.findByText('Bem-vindo ao Lumen')).toBeInTheDocument();
+    expect(await screen.findByText('Pergunte ao seu negócio')).toBeInTheDocument();
   });
 
   it('shows one generic error on invalid credentials (no enumeration)', async () => {

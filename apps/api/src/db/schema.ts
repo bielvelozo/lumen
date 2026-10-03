@@ -95,6 +95,28 @@ export const emailVerificationTokens = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// password_reset_tokens — token stored HASHED (invariant 4); the raw value only ever
+// exists in the emailed link.
+// ---------------------------------------------------------------------------
+export const passwordResetTokens = pgTable(
+  'password_reset_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull(),
+    expiresAt: tz('expires_at').notNull(),
+    usedAt: tz('used_at'),
+    createdAt: tz('created_at').notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_prt_token').on(table.tokenHash),
+    index('idx_prt_user').on(table.userId),
+  ],
+);
+
+// ---------------------------------------------------------------------------
 // refresh_tokens — token stored HASHED (invariant 4); raw value lives in the cookie.
 // ---------------------------------------------------------------------------
 export const refreshTokens = pgTable(
@@ -208,6 +230,20 @@ export const exposedRelationships = pgTable(
     index('idx_exposed_rel_conn').on(table.dbConnectionId),
   ],
 );
+
+// ---------------------------------------------------------------------------
+// sales_mappings — which exposed table holds the owner's sales (Home metrics, spec 17).
+// Names only: the registry guard re-checks them against the current exposure on every read.
+// ---------------------------------------------------------------------------
+export const salesMappings = pgTable('sales_mappings', {
+  orgId: uuid('org_id')
+    .primaryKey()
+    .references(() => organizations.id, { onDelete: 'cascade' }),
+  tableName: text('table_name').notNull(),
+  amountColumn: text('amount_column').notNull(),
+  dateColumn: text('date_column').notNull(),
+  updatedAt: tz('updated_at').notNull().defaultNow(),
+});
 
 // ---------------------------------------------------------------------------
 // ai_connections — the AI provider (Claude in v1). Secret key is `bytea`.
@@ -362,6 +398,8 @@ export type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect
 export type NewEmailVerificationToken = typeof emailVerificationTokens.$inferInsert;
 export type RefreshToken = typeof refreshTokens.$inferSelect;
 export type NewRefreshToken = typeof refreshTokens.$inferInsert;
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type NewPasswordResetToken = typeof passwordResetTokens.$inferInsert;
 export type DbConnection = typeof dbConnections.$inferSelect;
 export type NewDbConnection = typeof dbConnections.$inferInsert;
 export type ExposedTable = typeof exposedTables.$inferSelect;

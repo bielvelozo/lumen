@@ -70,6 +70,8 @@ export const aiConnectStateSchema = z.object({
   status: z.enum(CONNECTION_STATUSES).nullable(),
   lastValidatedAt: z.string().nullable(),
   lastError: z.enum(AI_CONNECT_ERROR_CATEGORIES).nullable(),
+  /** `subscription` = the server runs Claude under the operator's own login; no key per org. */
+  mode: z.enum(['api_key', 'subscription']).optional(),
 });
 
 export type AiConnectState = z.infer<typeof aiConnectStateSchema>;

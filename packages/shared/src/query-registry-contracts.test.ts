@@ -5,7 +5,19 @@ import {
   FILTER_OPS,
   aggregateOverTimeParamsSchema,
   filteredAggregateParamsSchema,
+  sqlTypeFamily,
 } from './query-registry-contracts';
+
+describe('sqlTypeFamily', () => {
+  it('classifies the MySQL COLUMN_TYPE strings the introspection stores', () => {
+    expect(sqlTypeFamily('decimal(12,2)')).toBe('numeric');
+    expect(sqlTypeFamily('int unsigned')).toBe('numeric');
+    expect(sqlTypeFamily('datetime')).toBe('temporal');
+    expect(sqlTypeFamily('timestamp(3)')).toBe('temporal');
+    expect(sqlTypeFamily('varchar(20)')).toBeNull();
+    expect(sqlTypeFamily('text')).toBeNull();
+  });
+});
 
 describe('closed enums', () => {
   it('aggregates / grains / ops are the v1 closed sets', () => {

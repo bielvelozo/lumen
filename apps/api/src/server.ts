@@ -9,6 +9,8 @@ import { createSignupService } from './auth/signup.service';
 import { makeDrizzleSignupStore } from './auth/signup.store';
 import { createVerificationService } from './auth/verification.service';
 import { makeDrizzleVerificationStore } from './auth/verification.store';
+import { createPasswordResetService } from './auth/password-reset.service';
+import { makeDrizzlePasswordResetStore } from './auth/password-reset.store';
 import { makeEmailSender } from './auth/email-sender';
 import { createInMemoryRateLimiter } from './auth/rate-limiter';
 import { createAccessTokenService } from './auth/jwt';
@@ -29,9 +31,12 @@ import { makeDrizzleChatStore } from './chat/chat.store';
 import { makeDrizzleFunctionLogStore } from './chat/function-log.store';
 import { createChatService } from './chat/chat.service';
 import { createAiSdkChatModel } from './chat/chat-model';
+import { createAgentSdkChatModel } from './chat/chat-model-agent-sdk';
 import { makeDrizzleAllowListAccessor } from './query-registry/allow-list';
 import { createMysql2QueryRunner } from './query-registry/query-runner';
 import { makeDrizzleAuditStore } from './audit/audit.store';
+import { createHomeMetricsService } from './home-metrics/home-metrics.service';
+import { makeDrizzleSalesMappingStore } from './home-metrics/sales-mapping.store';
 
 // Access token ~15 min; refresh 30 days (fixed lifetime, v1). See DECISIONS.md.
 const ACCESS_TTL_SECONDS = 15 * 60;
@@ -63,6 +68,18 @@ const verificationService = createVerificationService({
   rateLimiter: createInMemoryRateLimiter({ limit: 3, windowMs: 60 * 60 * 1000 }),
   generateToken,
   hashToken,
+  appUrl: env.APP_URL,
+});
+
+// Password reset. A reset link hands over an account, so it is rate-limited harder and
+// expires sooner than the verification link.
+const passwordResetService = createPasswordResetService({
+  store: makeDrizzlePasswordResetStore(db),
+  emailSender: makeEmailSender(env),
+  rateLimiter: createInMemoryRateLimiter({ limit: 3, windowMs: 60 * 60 * 1000 }),
+  generateToken,
+  hashToken,
+  hashPassword,
   appUrl: env.APP_URL,
 });
 
@@ -112,30 +129,45 @@ const exposureService = createExposureService({
 
 // Connect the AI — Claude BYO key (spec 11). Validation uses the Vercel AI SDK; the same
 // crypto module encrypts the key at rest. The plaintext key never leaves the service scope.
+const subscription =
+  env.AI_AUTH_MODE === 'subscription' ? { defaultModel: env.AI_SUBSCRIPTION_MODEL } : undefined;
+console.log(
+  subscription
+    ? `AI auth: Claude subscription via Agent SDK (default model ${subscription.defaultModel})`
+    : 'AI auth: per-org API keys',
+);
+
 const aiConnectionService = createAiConnectionService({
   store: makeDrizzleAiConnectionStore(db),
   validator: createAiSdkValidator(),
   encrypt: crypto.encrypt,
   decrypt: crypto.decrypt,
+  subscription,
 });
 
 // Chat orchestrator (spec 13) — ties Claude (Vercel AI SDK) + the query-function registry +
 // the read-only MySQL. The same crypto module decrypts the Claude key + MySQL password
 // in-process per request; neither plaintext is ever logged or persisted.
 const chatStore = makeDrizzleChatStore(db);
+const allowListAccessor = makeDrizzleAllowListAccessor(db);
+const queryRunner = createMysql2QueryRunner({ decrypt: crypto.decrypt });
 const chatService = createChatService({
   chatStore,
   logStore: makeDrizzleFunctionLogStore(db),
   aiConnectionStore: makeDrizzleAiConnectionStore(db),
-  allowListAccessor: makeDrizzleAllowListAccessor(db),
-  runner: createMysql2QueryRunner({ decrypt: crypto.decrypt }),
-  modelPort: createAiSdkChatModel(),
+  allowListAccessor,
+  runner: queryRunner,
+  modelPort: subscription
+    ? createAgentSdkChatModel({ oauthToken: env.CLAUDE_CODE_OAUTH_TOKEN || undefined })
+    : createAiSdkChatModel(),
   decrypt: crypto.decrypt,
+  subscription,
 });
 
 const app = buildApp({
   signupService,
   verificationService,
+  passwordResetService,
   auth: {
     authService,
     accessTokenService,
@@ -146,6 +178,14 @@ const app = buildApp({
   aiConnection: { aiConnectionService, accessTokenService },
   chat: { service: chatService, chatStore, accessTokenService },
   audit: { auditStore: makeDrizzleAuditStore(db), accessTokenService },
+  homeMetrics: {
+    service: createHomeMetricsService({
+      store: makeDrizzleSalesMappingStore(db),
+      accessor: allowListAccessor,
+      runner: queryRunner,
+    }),
+    accessTokenService,
+  },
   // Cross-site CORS allow-list from env (comma-separated; explicit, never `*`).
   cors: { origins: env.WEB_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean) },
 });

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { ChatErrorCode } from '@lumen/shared';
-import { Card, Button } from '../../design-system/ui';
+import { Card, LogoMark } from '../../design-system/ui';
 
 /**
  * Gating CTA — shown (instead of a doomed input) when a prerequisite connection is missing.
@@ -36,7 +36,7 @@ export function ErrorPanel({ code, message }: { code: ChatErrorCode; message: st
         ? { to: '/connect/database', label: 'Revisar conexão do banco' }
         : null;
   return (
-    <Card role="alert" style={{ borderColor: 'var(--c-neg)' }}>
+    <Card role="alert" style={{ borderColor: 'var(--c-neg)', background: 'var(--c-neg-soft)' }}>
       <p style={{ margin: 0, color: 'var(--c-text)' }}>{message}</p>
       {link && (
         <p style={{ margin: '8px 0 0' }}>
@@ -51,18 +51,20 @@ export function ErrorPanel({ code, message }: { code: ChatErrorCode; message: st
 export function EmptyConversation({ onExample }: { onExample: (q: string) => void }): JSX.Element {
   const examples = ['Quanto vendi em maio?', 'Quantos pedidos tive no último mês?', 'Qual meu ticket médio?'];
   return (
-    <Card>
-      <h2 className="ds-display" style={{ marginTop: 0 }}>
-        Faça sua primeira pergunta
-      </h2>
-      <p style={{ color: 'var(--c-text-2)' }}>Pergunte sobre seus dados em linguagem natural. Por exemplo:</p>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 14, padding: '48px 0 8px' }}>
+      <LogoMark size={48} tile />
+      <h2 className="page-title">Faça sua primeira pergunta</h2>
+      <p className="page-lead">
+        Pergunte sobre seus dados em linguagem natural. A resposta vem do seu banco, com o número exato. Por
+        exemplo:
+      </p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         {examples.map((q) => (
-          <Button key={q} type="button" variant="ghost" onClick={() => onExample(q)}>
+          <button key={q} type="button" className="chip" onClick={() => onExample(q)}>
             {q}
-          </Button>
+          </button>
         ))}
       </div>
-    </Card>
+    </div>
   );
 }

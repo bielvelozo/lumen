@@ -5,7 +5,7 @@ import type {
   ChatStreamEvent,
   ClaudeModelId,
 } from '@lumen/shared';
-import { apiFetch, apiUrl } from './api-client';
+import { apiFetch, apiUrl, refreshSession } from './api-client';
 
 /**
  * Flow-4 endpoints (spec 13/14). Non-stream reads/mutations go through `apiFetch` (cookie auth,
@@ -33,16 +33,26 @@ export async function* streamMessage(
   body: { message: string; model?: ClaudeModelId },
   signal?: AbortSignal,
 ): AsyncGenerator<ChatStreamEvent> {
-  const response = await fetch(apiUrl(`/chat/sessions/${sessionId}/messages`), {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal,
-  });
+  const send = (): Promise<Response> =>
+    fetch(apiUrl(`/chat/sessions/${sessionId}/messages`), {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal,
+    });
+
+  let response = await send();
+  // Same renewal as `apiFetch` — this one is a raw fetch, so it needs it by hand. A question
+  // typed 15 minutes after the last one must not be lost to an expired access token.
+  if (response.status === 401 && (await refreshSession())) response = await send();
 
   if (!response.ok || !response.body) {
-    yield { type: 'error', code: 'unknown', message: 'Não foi possível iniciar a resposta.' };
+    const message =
+      response.status === 401
+        ? 'Sua sessão expirou. Faça login novamente.'
+        : 'Não foi possível iniciar a resposta.';
+    yield { type: 'error', code: 'unknown', message };
     return;
   }
 

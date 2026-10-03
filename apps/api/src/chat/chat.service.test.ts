@@ -24,7 +24,14 @@ const access: OrgDataAccess = {
   allowList: { tables: new Map([['orders', new Map([['total', 'decimal']])]]), relationships: [] },
 };
 
-function makeDeps(opts: { ai?: StoredAiConnection | null; run?: ChatRunResult; access?: OrgDataAccess | null } = {}) {
+function makeDeps(
+  opts: {
+    ai?: StoredAiConnection | null;
+    run?: ChatRunResult;
+    access?: OrgDataAccess | null;
+    decryptThrows?: boolean;
+  } = {},
+) {
   const messages: Array<{ role: string; content: string; model?: string }> = [];
   const chatStore: ChatStore = {
     createSession: vi.fn(async () => ({ id: 'sess-1' })),
@@ -58,7 +65,10 @@ function makeDeps(opts: { ai?: StoredAiConnection | null; run?: ChatRunResult; a
       return result;
     }),
   };
-  const decrypt = vi.fn((b: Buffer) => b.toString('utf8').replace(/^enc:/, ''));
+  const decrypt = vi.fn((b: Buffer) => {
+    if (opts.decryptThrows) throw new Error('MALFORMED_BLOB');
+    return b.toString('utf8').replace(/^enc:/, '');
+  });
   const deps: ChatServiceDeps = { chatStore, logStore, aiConnectionStore, allowListAccessor, runner, modelPort, decrypt };
   return { deps, chatStore, modelPort, messages };
 }
@@ -151,5 +161,17 @@ describe('chat.service unhappy paths', () => {
     const { deps } = makeDeps({ run: { outcome: 'step_limit' } });
     const { sink } = collectingSink();
     expect(await createChatService(deps).sendMessage(INPUT, sink)).toMatchObject({ code: 'step_limit' });
+  });
+});
+
+describe('chat.service — the stored Claude key can no longer be read', () => {
+  it('answers ai_key_invalid instead of throwing', async () => {
+    const { deps, modelPort } = makeDeps({ decryptThrows: true });
+    const service = createChatService(deps);
+
+    const result = await service.sendMessage(INPUT, collectingSink().sink);
+
+    expect(result).toMatchObject({ outcome: 'error', code: 'ai_key_invalid' });
+    expect(modelPort.run).not.toHaveBeenCalled();
   });
 });

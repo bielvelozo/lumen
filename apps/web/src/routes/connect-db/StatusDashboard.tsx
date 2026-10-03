@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { DbConnectionState, ExposureResponse, ConnectionErrorCategory } from '@lumen/shared';
-import { Card, Button } from '../../design-system/ui';
+import { Card, Button, Badge } from '../../design-system/ui';
 import { retestConnection } from '../../lib/connect-db';
 import { CONNECT_DB_KEYS } from '../../lib/connect-db-queries';
+import { formatDateTime } from '../../lib/format';
 import { ExposureStep } from './ExposureStep';
 import { CredentialForm } from './ConnectStep';
+import { SalesMappingCard } from './SalesMappingCard';
 
 const ERROR_MESSAGES: Record<ConnectionErrorCategory, string> = {
   auth_failed: 'Falha de autenticação.',
@@ -57,10 +59,14 @@ export function StatusDashboard({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <Card>
         <h2 style={{ marginTop: 0 }}>Status da conexão</h2>
-        <p>
-          <strong>{STATUS_LABELS[connection.status ?? ''] ?? connection.status}</strong>
+        <p style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <Badge tone={connection.status === 'active' ? 'pos' : connection.status === 'failed' ? 'neg' : 'wait'}>
+            {STATUS_LABELS[connection.status ?? ''] ?? connection.status}
+          </Badge>
           {connection.lastTestedAt && (
-            <span style={{ color: 'var(--c-text-2)' }}> · testado em {connection.lastTestedAt}</span>
+            <span className="ds-mono" style={{ color: 'var(--c-text-3)', fontSize: 12 }}>
+              testado em {formatDateTime(connection.lastTestedAt)}
+            </span>
           )}
         </p>
         {connection.lastError && (
@@ -69,7 +75,7 @@ export function StatusDashboard({
           </p>
         )}
         {config && (
-          <dl style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 16px', margin: 0 }}>
+          <dl style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '8px 24px', margin: 0 }}>
             <dt style={{ color: 'var(--c-text-2)' }}>Host</dt>
             <dd style={{ margin: 0 }}>{config.host}</dd>
             <dt style={{ color: 'var(--c-text-2)' }}>Porta</dt>
@@ -83,7 +89,7 @@ export function StatusDashboard({
           </dl>
         )}
         {/* The password is intentionally never shown. */}
-        <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 10, marginTop: 20, flexWrap: 'wrap' }}>
           <Button type="button" variant="ghost" disabled={retest.isPending} onClick={() => retest.mutate()}>
             {retest.isPending ? 'Testando…' : 'Testar novamente'}
           </Button>
@@ -99,9 +105,15 @@ export function StatusDashboard({
       <Card>
         <h2 style={{ marginTop: 0 }}>Tabelas expostas</h2>
         {exposure && exposure.tables.length > 0 ? (
-          <ul style={{ margin: 0, paddingLeft: 20 }}>
+          <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {exposure.tables.map((t) => (
-              <li key={t.name}>{t.name}</li>
+              <li
+                key={t.name}
+                className="ds-mono"
+                style={{ fontSize: 13, padding: '4px 10px', borderRadius: 8, background: 'var(--c-bg)', border: '1px solid var(--c-border)' }}
+              >
+                {t.name}
+              </li>
             ))}
           </ul>
         ) : (
@@ -110,7 +122,7 @@ export function StatusDashboard({
         {exposure && exposure.relationships.length > 0 && (
           <>
             <h3 style={{ marginBottom: 4 }}>Relações</h3>
-            <ul style={{ margin: 0, paddingLeft: 20, color: 'var(--c-text-2)' }}>
+            <ul className="ds-mono" style={{ margin: 0, paddingLeft: 20, color: 'var(--c-text-2)', fontSize: 13, lineHeight: 1.8 }}>
               {exposure.relationships.map((r) => (
                 <li key={r.name}>
                   {r.fromTable}.{r.fromColumn} → {r.toTable}.{r.toColumn}
@@ -120,6 +132,8 @@ export function StatusDashboard({
           </>
         )}
       </Card>
+
+      <SalesMappingCard exposure={exposure} />
     </div>
   );
 }

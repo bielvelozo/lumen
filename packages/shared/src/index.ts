@@ -11,3 +11,4 @@ export * from './query-registry-contracts';
 export * from './chat-contracts';
 export * from './redact';
 export * from './audit-contracts';
+export * from './sales-contracts';

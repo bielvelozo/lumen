@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lumen · design system</title>
+<link rel="icon" type="image/svg+xml" href="logo/lumen-favicon.svg">
+<link rel="stylesheet" href="design-system.css">
+<style>
+  .wrap{max-width:1120px;margin:0 auto;padding:48px 24px 96px;display:flex;flex-direction:column;gap:56px}
+  .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  .grid{display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+  .sec{display:flex;flex-direction:column;gap:18px}
+  .sec h2{margin:0;font-size:20px;font-weight:600}
+  .swatch{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--c-text-3)}
+  .swatch i{height:88px;border-radius:14px;border:1px solid var(--c-border)}
+  .swatch b{font-size:14px;color:var(--c-text);font-weight:600;margin-top:6px}
+  .tile{height:200px;border-radius:18px;display:flex;align-items:center;justify-content:center;gap:12px;border:1px solid var(--c-border)}
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <header class="row" style="justify-content:space-between">
+    <span class="eyebrow">Lumen · design system v2 · “Luz sobre o dado”</span>
+    <button type="button" class="btn btn--ghost btn--icon" aria-label="Alternar tema claro e escuro"
+      onclick="var h=document.documentElement;h.dataset.theme=h.dataset.theme==='dark'?'light':'dark'">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
+    </button>
+  </header>
+
+  <section class="sec">
+    <h1 class="page-title" style="font-size:72px">Pergunte ao seu negócio.</h1>
+    <p class="page-lead">O L de Lumen é o canto de todo gráfico, o eixo onde os números moram. O semicírculo âmbar é a luz que o assistente acende sobre eles: a resposta exata, vinda do banco do próprio cliente.</p>
+  </section>
+
+  <section class="sec">
+    <h2>Logo</h2>
+    <div class="grid">
+      <div class="tile" style="background:#fff"><img src="logo/lumen-mark.svg" alt="" width="50"><span class="ds-display" style="font-size:64px;line-height:1;color:#15171c">lumen</span></div>
+      <div class="tile" style="background:#15171c;border:0"><img src="logo/lumen-mark-inverse.svg" alt="" width="50"><span class="ds-display" style="font-size:64px;line-height:1;color:#f5f3ee">lumen</span></div>
+      <div class="tile" style="background:#fff;align-items:flex-end;padding-bottom:36px;gap:18px">
+        <img src="logo/lumen-icon.svg" alt="Ícone do app" width="88">
+        <img src="logo/lumen-icon.svg" alt="" width="48">
+        <img src="logo/lumen-favicon.svg" alt="" width="24">
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Cores</h2>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
+      <div class="swatch"><i style="background:#15171c"></i><b>Tinta</b>#15171C · texto, moldura</div>
+      <div class="swatch"><i style="background:#f5f3ee"></i><b>Papel</b>#F5F3EE · fundo</div>
+      <div class="swatch"><i style="background:#f2a43a"></i><b>Âmbar</b>#F2A43A · ação, destaque</div>
+      <div class="swatch"><i style="background:#8f5500"></i><b>Âmbar escuro</b>#8F5500 · links</div>
+      <div class="swatch"><i style="background:#2b7a52"></i><b>Positivo</b>#2B7A52</div>
+      <div class="swatch"><i style="background:#b3412a"></i><b>Negativo</b>#B3412A</div>
+      <div class="swatch"><i style="background:#101217"></i><b>Noite</b>#101217 · tema escuro</div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Tipografia</h2>
+    <div class="grid">
+      <div class="card"><span class="eyebrow">Display · Instrument Serif</span><p class="ds-display" style="font-size:56px;line-height:1;margin:16px 0 8px">R$ 128.000</p><p style="margin:0;color:var(--c-text-2)">Marca, títulos e números-chave. Só a partir de 28 px.</p></div>
+      <div class="card"><span class="eyebrow">Interface · Geist</span><p style="font-size:22px;font-weight:500;margin:16px 0 8px">Quanto vendi em maio, por categoria?</p><p style="margin:0;color:var(--c-text-2)">Interface, respostas e tabelas. 400 · 500 · 600.</p></div>
+      <div class="card"><span class="eyebrow">Técnico · Geist Mono</span><p class="ds-mono" style="font-size:15px;margin:16px 0 8px">GRANT SELECT ON `loja`.*</p><p style="margin:0;color:var(--c-text-2)">SQL, auditoria e rótulos. Sempre pequeno.</p></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Componentes</h2>
+    <div class="row">
+      <button type="button" class="btn btn--primary">Conectar e testar</button>
+      <button type="button" class="btn btn--ghost">Testar novamente</button>
+      <button type="button" class="chip">Qual meu ticket médio?</button>
+      <span class="badge badge--pos">Conectado</span>
+      <span class="badge badge--wait">Pendente</span>
+      <span class="badge badge--neg">Falhou</span>
+      <div class="segmented" role="group" aria-label="Status"><button type="button" aria-pressed="true">Todos</button><button type="button" aria-pressed="false">Sucesso</button><button type="button" aria-pressed="false">Falha</button></div>
+    </div>
+    <div class="grid">
+      <div class="metric"><p class="metric__label">Vendas em maio</p><div class="metric__value">R$ 128.000</div><div class="metric__delta metric__delta--up">+12% vs abril</div></div>
+      <div class="metric"><p class="metric__label">Ticket médio</p><div class="metric__value">R$ 374</div><div class="metric__delta metric__delta--down">-3% vs abril</div></div>
+      <div class="card" style="display:flex;flex-direction:column;gap:7px"><label class="field-label" for="p-email">E-mail</label><input id="p-email" class="input" placeholder="voce@suaempresa.com.br"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px;max-width:720px">
+      <div class="bubble bubble--me">Quanto vendi em maio, por categoria?</div>
+      <div class="msg">
+        <img src="logo/lumen-icon.svg" alt="" width="32">
+        <div class="msg__body">
+          <span class="msg__name">Lumen</span>
+          <div class="bubble bubble--them md">
+            <p>Em maio você vendeu <strong>R$ 128.000</strong> em <strong>342 pedidos</strong>, 12% acima de abril.</p>
+            <table><thead><tr><th>Categoria</th><th>Pedidos</th><th>Receita</th></tr></thead>
+              <tbody><tr><td>Calçados</td><td>148</td><td>R$ 61.400</td></tr><tr><td>Vestuário</td><td>131</td><td>R$ 44.200</td></tr><tr><td>Acessórios</td><td>63</td><td>R$ 22.400</td></tr></tbody></table>
+            <blockquote>Números ilustrativos — no app, eles vêm do banco do cliente.</blockquote>
+          </div>
+        </div>
+      </div>
+    </div>
+    <pre class="code">-- Leitura liberada apenas no banco 'loja'.
+GRANT SELECT ON `loja`.* TO 'lumen_ro'@'%';</pre>
+  </section>
+
+  <section class="sec">
+    <h2>Moldura (vidro)</h2>
+    <div style="display:grid;grid-template-columns:220px 1fr;gap:20px;min-height:200px">
+      <div class="glass glass--ink" style="border-radius:16px;padding:18px 12px;display:flex;flex-direction:column;gap:4px">
+        <a class="nav-item nav-item--on" href="#">Início</a>
+        <a class="nav-item" href="#">Chat</a>
+        <a class="nav-item" href="#">Auditoria</a>
+      </div>
+      <div style="display:flex;align-items:flex-end">
+        <div class="glass" style="flex:1;border-radius:18px;padding:16px;color:var(--c-text-3)">Pergunte sobre seus dados…</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+</body>
+</html>

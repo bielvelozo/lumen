@@ -8,6 +8,8 @@ import type { SignupService } from './auth/signup.service';
 import { registerSignupRoute } from './auth/signup.route';
 import type { VerificationService } from './auth/verification.service';
 import { registerVerificationRoutes } from './auth/verification.route';
+import type { PasswordResetService } from './auth/password-reset.service';
+import { registerPasswordResetRoutes } from './auth/password-reset.route';
 import type { AuthRouteDeps } from './auth/auth.route';
 import { registerAuthRoutes } from './auth/auth.route';
 import type { AccessTokenService } from './auth/jwt';
@@ -24,6 +26,8 @@ import type { ChatRouteDeps } from './chat/chat.route';
 import { registerChatRoutes } from './chat/chat.route';
 import type { AuditStore } from './audit/audit.store';
 import { registerAuditRoutes } from './audit/audit.route';
+import type { HomeMetricsService } from './home-metrics/home-metrics.service';
+import { registerHomeMetricsRoutes } from './home-metrics/home-metrics.route';
 
 /**
  * Dependencies injected into the app. Optional so `/health` (and the existing
@@ -34,6 +38,7 @@ import { registerAuditRoutes } from './audit/audit.route';
 export interface AppDeps {
   signupService?: SignupService;
   verificationService?: VerificationService;
+  passwordResetService?: PasswordResetService;
   auth?: AuthRouteDeps;
   /** DB-connection consent + create/test routes (specs 07/08). `requireAuth` from the JWT. */
   dbConnection?: {
@@ -58,6 +63,11 @@ export interface AppDeps {
     auditStore: AuditStore;
     accessTokenService: AccessTokenService;
   };
+  /** Sales mapping + Home metrics (spec 17). `requireAuth` from the JWT. */
+  homeMetrics?: {
+    service: HomeMetricsService;
+    accessTokenService: AccessTokenService;
+  };
   /**
    * Cross-site CORS (spec 16). `origins` is the EXPLICIT allow-list (the production Pages
    * origin(s)) permitted to call the API with credentials. NEVER `*` — the browser rejects
@@ -79,11 +89,18 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
   // A sanitized last-resort error handler: report to Sentry (no-op when disabled) and return ONLY
   // the opaque request id — never a stack trace or internal detail.
   app.setErrorHandler((error, request, reply) => {
+    reply.header('x-request-id', String(request.id));
+    // Fastify's own client errors (malformed JSON, empty JSON body, oversized payload) carry a
+    // 4xx statusCode; they are the caller's fault, not an incident — never a 500, never Sentry.
+    const raw = (error as { statusCode?: unknown }).statusCode;
+    const statusCode = typeof raw === 'number' ? raw : 500;
+    if (statusCode >= 400 && statusCode < 500) {
+      return reply.code(statusCode).send({ error: 'BadRequest', requestId: request.id });
+    }
     Sentry.captureException(error, (scope) => {
       scope.setTag('request_id', String(request.id));
       return scope;
     });
-    reply.header('x-request-id', String(request.id));
     return reply.code(500).send({ error: 'InternalError', requestId: request.id });
   });
 
@@ -110,9 +127,13 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     registerVerificationRoutes(app, deps.verificationService);
   }
 
+  if (deps.passwordResetService) {
+    registerPasswordResetRoutes(app, deps.passwordResetService);
+  }
+
   // The cookie plugin must load ONCE, before any route/requireAuth that reads cookies.
   // Register it if any cookie-dependent feature is wired.
-  if (deps.auth || deps.dbConnection || deps.aiConnection || deps.chat || deps.audit) {
+  if (deps.auth || deps.dbConnection || deps.aiConnection || deps.chat || deps.audit || deps.homeMetrics) {
     app.register(cookie);
   }
 
@@ -144,6 +165,11 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
   if (deps.audit) {
     const requireAuth = makeRequireAuth(deps.audit.accessTokenService);
     registerAuditRoutes(app, deps.audit.auditStore, requireAuth);
+  }
+
+  if (deps.homeMetrics) {
+    const requireAuth = makeRequireAuth(deps.homeMetrics.accessTokenService);
+    registerHomeMetricsRoutes(app, deps.homeMetrics.service, requireAuth);
   }
 
   return app;

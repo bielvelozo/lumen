@@ -10,8 +10,8 @@ import { resetPassword } from '../lib/api';
 /**
  * Reset-password. Reads the raw `?token=` from the URL (never stored), collects a new
  * password validated against the SHARED password policy, and posts both. On success →
- * `/login`. NOTE: the `/auth/reset-password` endpoint is a deferred backend slice (see
- * DECISIONS); the UI is built + tested against mocks.
+ * `/login`; an unusable link (unknown / expired / already spent) comes back as a 400 and
+ * shows the "ask for a new link" message.
  */
 export function ResetPasswordPage(): JSX.Element {
   const [params] = useSearchParams();

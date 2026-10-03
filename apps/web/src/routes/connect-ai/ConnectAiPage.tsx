@@ -7,7 +7,7 @@ import {
   type AiConnectErrorCategory,
   type AiConnectResult,
 } from '@lumen/shared';
-import { Card, Button } from '../../design-system/ui';
+import { Card, Button, Badge, PageHeader } from '../../design-system/ui';
 import { FormField } from '../../forms/FormField';
 import { connectAi } from '../../lib/ai-connection';
 import { useAiConnection, AI_CONNECTION_KEY } from '../../lib/ai-connection-queries';
@@ -62,6 +62,29 @@ export function ConnectAiPage(): JSX.Element {
   const state = connection.data;
   const hasKey = state?.hasKey ?? false;
 
+  if (state?.mode === 'subscription') {
+    const modelLabel = CLAUDE_MODELS.find((m) => m.id === state.defaultModel)?.label ?? state.defaultModel;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 720 }}>
+        <PageHeader
+          title="IA (Claude)"
+          lead="Este servidor responde pela assinatura do Claude de quem o opera. Não é preciso colar chave."
+        />
+        <Card>
+          <p style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <Badge tone="pos">{STATUS_LABELS.active} — Claude</Badge>
+            <span className="ds-mono" style={{ color: 'var(--c-text-3)', fontSize: 12 }}>
+              {modelLabel}
+            </span>
+          </p>
+          <p style={{ color: 'var(--c-text-2)', margin: 0 }}>
+            Você pode trocar o modelo a cada pergunta no seletor do chat.
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
   const onSubmit = (e: FormEvent): void => {
     e.preventDefault();
     setKeyError(undefined);
@@ -79,24 +102,18 @@ export function ConnectAiPage(): JSX.Element {
   const isActive = (lastResult?.state.status ?? state?.status) === 'active';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 640 }}>
-      <div>
-        <h1 className="ds-display" style={{ margin: 0, fontSize: 'var(--text-xl)' }}>
-          Conectar IA (Claude)
-        </h1>
-        <p style={{ color: 'var(--c-text-2)', margin: '6px 0 0' }}>
-          Use sua própria chave da Anthropic. Ela é validada com uma chamada real, criptografada e
-          nunca exibida de volta.
-        </p>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 720 }}>
+      <PageHeader
+        title="Conectar IA (Claude)"
+        lead="Use sua própria chave da Anthropic. Ela é validada com uma chamada real, criptografada e nunca exibida de volta."
+      />
 
       <Card>
         {isActive && (
-          <p style={{ marginTop: 0 }}>
-            <strong>{STATUS_LABELS.active} — Claude</strong>
+          <p style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <Badge tone="pos">{STATUS_LABELS.active} — Claude</Badge>
             {(lastResult?.state.defaultModel ?? state?.defaultModel) && (
-              <span style={{ color: 'var(--c-text-2)' }}>
-                {' · '}
+              <span className="ds-mono" style={{ color: 'var(--c-text-3)', fontSize: 12 }}>
                 {CLAUDE_MODELS.find((m) => m.id === (lastResult?.state.defaultModel ?? state?.defaultModel))
                   ?.label ?? (lastResult?.state.defaultModel ?? state?.defaultModel)}
               </span>
@@ -119,18 +136,13 @@ export function ConnectAiPage(): JSX.Element {
             onChange={setApiKey}
             autoComplete="off"
           />
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14 }}>
-            <span style={{ color: 'var(--c-text-2)' }}>Modelo padrão</span>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+            <span className="field-label">Modelo padrão</span>
             <select
               value={model}
               onChange={(e) => setModel(e.target.value as ClaudeModelId)}
-              style={{
-                padding: '8px 10px',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--c-border)',
-                background: 'var(--c-surface-2)',
-                color: 'var(--c-text)',
-              }}
+              className="input"
+              style={{ width: '100%', minHeight: 44, fontSize: 15, background: 'var(--c-surface)', borderColor: 'var(--c-border-strong)' }}
             >
               {CLAUDE_MODELS.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -139,7 +151,7 @@ export function ConnectAiPage(): JSX.Element {
               ))}
             </select>
           </label>
-          <Button type="submit" disabled={connect.isPending}>
+          <Button type="submit" disabled={connect.isPending} style={{ alignSelf: 'flex-start' }}>
             {connect.isPending
               ? 'Validando…'
               : hasKey

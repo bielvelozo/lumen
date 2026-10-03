@@ -29,6 +29,13 @@ export type ChatRunResult =
   | { outcome: 'step_limit' }
   | { outcome: 'error'; category: AiConnectErrorCategory };
 
+// Each assistant message after a tool call opens a new text block, and the deltas carry no
+// whitespace between blocks: "…ao mesmo tempo! 🔍Aqui está o resumo".
+export function textBlockSeparator(textSoFar: string): string {
+  if (textSoFar.trim().length === 0 || textSoFar.endsWith('\n\n')) return '';
+  return textSoFar.endsWith('\n') ? '\n' : '\n\n';
+}
+
 /**
  * Port encapsulating the ENTIRE model interaction — the tool-calling loop + streaming. The
  * orchestrator provides the system prompt, history, and backend-executed tools; the port drives
@@ -65,9 +72,19 @@ export function createAiSdkChatModel(): ChatModelPort {
         });
 
         let text = '';
-        for await (const delta of result.textStream) {
+        const emit = (delta: string): void => {
           text += delta;
           handlers.onTextDelta(delta);
+        };
+        for await (const part of result.fullStream) {
+          if (part.type === 'text-start') {
+            const separator = textBlockSeparator(text);
+            if (separator) emit(separator);
+          } else if (part.type === 'text-delta') {
+            emit(part.text);
+          } else if (part.type === 'error') {
+            throw part.error;
+          }
         }
 
         const finishReason = await result.finishReason;
